@@ -1,0 +1,19 @@
+{
+    "databaseConfig":{
+        "host": "172.19.220.163",
+        "user": "root",
+        "password": "123456",
+        "port": 3306,
+        "database": "rpki_db",
+        "rirs": ["RIPE"],
+        "tables": {
+            "cas": "cas",
+            "roas":"roas"
+        },
+        "ases": ["AS4889"],
+        "limitLayer":3
+    },
+    
+    "engine":"docker"
+    
+}
