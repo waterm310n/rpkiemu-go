@@ -163,20 +163,74 @@ func preProcessing(ipResources, asResources, uri string) *handle {
 	}
 }
 
-func dfsHierarchy(stmt *sql.Stmt, dataDir string, depth int) {
+// 对给定的aia执行查找语句并将结果输出到以_roas结尾的文件中
+func writeRoas(roasStmt *sql.Stmt, aia string,path string){
+	rows,err:=roasStmt.Query(aia)
+	if err != nil {
+		slog.Error(err.Error())
+	}
+	helper := func(Ipaddrblocks,AsId string) []string {
+		var f interface{}
+		res := []string{}
+		//TODO用接口写好麻烦，以后用结构体反序列化
+		json.Unmarshal([]byte(Ipaddrblocks),&f)
+		if ipAddrBlocks,ok := f.(map[string]interface{})["ipAddrBlocks"];ok{
+			if ipAddrBlocks,ok:=ipAddrBlocks.([]interface{});ok{
+				for _,ipAddrBlock:= range ipAddrBlocks{
+					if addresses,ok:=ipAddrBlock.(map[string]interface{})["addresses"];ok{
+						if addresses,ok:=addresses.([]interface{});ok{
+							for _,address := range addresses{
+								if address,ok := address.(map[string]interface{})["address"];ok{
+									if address,ok := address.(string);ok{
+										res = append(res, "A: "+address+" => "+AsId)
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		return res
+	}
+	res := []string{}
+	flag := true
+	var file *os.File
+	for rows.Next() {
+		if flag{
+			file,err = os.Create(path)
+			if err != nil{
+				slog.Error(err.Error())
+				return
+			}
+			flag=false
+		}
+		var Ipaddrblocks,AsId string
+		rows.Scan(&Ipaddrblocks,&AsId)
+		res = append(res,helper(Ipaddrblocks,AsId)...)
+	}
+	file.WriteString(strings.Join(res,"\n"))
+}
+
+// 深度优先搜索层次结构生成roas数据文件和层次结构数据文件
+func dfsHierarchy(hierarchyStmt *sql.Stmt, roasStmt *sql.Stmt, dataDir string, depth int) {
 	var helper func(string, string, int)
 	helper = func(dataDir string, aia string, depth int) {
 		if depth == 0 {
 			return
 		}
-		rows, err := stmt.Query(aia)
+		rows, err := hierarchyStmt.Query(aia)
 		if err != nil {
 			slog.Error(err.Error())
 		}
-		if err := os.MkdirAll(dataDir, os.ModePerm); err != nil {
-			slog.Error(err.Error())
-		}
+		flag := true
 		for rows.Next() {
+			if flag {
+				if err := os.MkdirAll(dataDir, os.ModePerm); err != nil {
+					slog.Error(err.Error())
+				}
+				flag = false
+			}
 			var IPResources, ASResources, URI string
 			rows.Scan(&IPResources, &ASResources, &URI)
 			handle := preProcessing(IPResources, ASResources, URI)
@@ -189,6 +243,7 @@ func dfsHierarchy(stmt *sql.Stmt, dataDir string, depth int) {
 					file.Write(content)
 					helper(dataDir+"/"+handle.CertName+"_children", URI, depth-1)
 				}
+				writeRoas(roasStmt,URI,dataDir+"/"+handle.CertName+"_roas")
 			}
 		}
 	}
@@ -216,15 +271,21 @@ func dfsHierarchy(stmt *sql.Stmt, dataDir string, depth int) {
 func GenerateData(dataDir string) {
 	db := connect()
 	defer db.Close()
-	prepare_stmt := fmt.Sprintf("select IPResources, ASResources,URI from %s.%s where aia = ? and isvalid = 1", config.Database, config.Tables["cas"])
-	stmt, err := db.Prepare(prepare_stmt)
-	defer stmt.Close()
+	prepareHierarchyStmt := fmt.Sprintf("select IPResources, ASResources,URI from %s.%s where aia = ? and isvalid = 1", config.Database, config.Tables["cas"])
+	hierarchyStmt, err := db.Prepare(prepareHierarchyStmt)
+	defer hierarchyStmt.Close()
+	if err != nil {
+		slog.Error(err.Error())
+	}
+	prepareRoasStmt := fmt.Sprintf("select Ipaddrblocks,AsId from %s.%s where aia= ? and isvalid=1",config.Database, config.Tables["roas"])
+	roasStmt, err := db.Prepare(prepareRoasStmt)
+	defer roasStmt.Close()
 	if err != nil {
 		slog.Error(err.Error())
 	}
 	if err := os.MkdirAll(dataDir, os.ModePerm); err != nil {
 		slog.Error(err.Error())
 	}
-	dfsHierarchy(stmt, dataDir, config.LimitLayer)
+	dfsHierarchy(hierarchyStmt, roasStmt,dataDir, config.LimitLayer)
 	slog.Info("generate data compelete")
 }
