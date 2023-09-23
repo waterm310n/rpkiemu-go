@@ -11,9 +11,9 @@ func TestURIMatch(t *testing.T){
 	testcases := []struct {
         in, wantProtocol,wantHost,wantCertName string
     }{
-        {"rsync://rpki.ripe.net/ta/ripe-ncc-ta.cer", "rsync","rpki.ripe.net","ripe-ncc-ta.cer"},
-		{"rsync://rpki.apnic.net/repository/B3A24F201D6611E28AC8837C72FD1FF2/vw5vTuDhfd6MSiS_iX0ZuHqldZ8.cer","rsync","rpki.apnic.net","vw5vTuDhfd6MSiS_iX0ZuHqldZ8.cer"},
-		{"rsync://repository.lacnic.net/rpki/lacnic/f52b0c01-84ba-406f-919b-e3164fefc3f9/977f12dc643e493b8d079520804e926f4964772d.cer","rsync","repository.lacnic.net","977f12dc643e493b8d079520804e926f4964772d.cer"},
+        {"rsync://rpki.ripe.net/ta/ripe-ncc-ta.cer", "rsync","rpki.ripe.net","ripe-ncc-ta"},
+		{"rsync://rpki.apnic.net/repository/B3A24F201D6611E28AC8837C72FD1FF2/vw5vTuDhfd6MSiS_iX0ZuHqldZ8.cer","rsync","rpki.apnic.net","vw5vTuDhfd6MSiS_iX0ZuHqldZ8"},
+		{"rsync://repository.lacnic.net/rpki/lacnic/f52b0c01-84ba-406f-919b-e3164fefc3f9/977f12dc643e493b8d079520804e926f4964772d.cer","rsync","repository.lacnic.net","977f12dc643e493b8d079520804e926f4964772d"},
 	}
 	for _, tc := range testcases {
         parts := URI_MATCH.FindStringSubmatch(tc.in)
@@ -63,6 +63,7 @@ func TestAsnMinMaxMatch(t *testing.T){
 	}
 }
 
+//测试Ipv4最小到最大匹配能否在将所有的Min: 140.109.0.0  max: 140.138.255.255转化成140.109.0.0-140.138.255.255
 func TestIPV4MinMaxMatch(t *testing.T){
 	testcases := []struct{
 		in string
@@ -78,6 +79,7 @@ func TestIPV4MinMaxMatch(t *testing.T){
 	}
 }
 
+//测试Ipv4最小到最大匹配能否在将所有的Min: 140.109.0.0  max: 140.138.255.255转化成2001:7fa:3::-2001:7fa:4:ffff:ffff:ffff:ffff:ffff
 func TestIPV6MinMaxMatch(t *testing.T){
 	testcases := []struct{
 		in string

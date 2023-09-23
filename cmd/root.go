@@ -27,7 +27,7 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config","", "配置文件 (默认为 [$HOME|$CURRENT_WORKDIR]/.rpki-emu.json or )")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config","", "配置文件 (默认为 [$HOME|$CURRENT_WORKDIR]/.rpki-emu.json)")
 	rootCmd.AddCommand(ca.CaCmd)
 	rootCmd.AddCommand(rp.RpCmd)
 }

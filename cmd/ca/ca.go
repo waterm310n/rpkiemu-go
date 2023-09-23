@@ -12,6 +12,7 @@ var (
 )
 
 func init(){
+	GenerateCmd.PersistentFlags().StringVarP(&dataDir, "dataDir","d","examples", "数据生成目录")
 	CaCmd.AddCommand(CreateCmd)
 	CaCmd.AddCommand(GenerateCmd)
 }

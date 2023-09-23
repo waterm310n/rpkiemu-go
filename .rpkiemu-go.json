@@ -7,11 +7,11 @@
         "database": "rpki_db",
         "rirs": ["RIPE"],
         "tables": {
-            "cas": "cas",
-            "roas":"roas"
+            "cas": "cas_new",
+            "roas":"roas_new"
         },
-        "ases": ["AS4889"],
-        "limitLayer":3
+        "ases": ["AS8393"],
+        "limitLayer":5
     },
     
     "engine":"docker"
