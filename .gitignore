@@ -1,3 +1,4 @@
 rpkiemu-go
 .vscode
 examples
+go.sum

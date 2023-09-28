@@ -1,7 +1,7 @@
 # rpkiemu-go
 
-[![许可证](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)    
-![Go](https://img.shields.io/badge/Language-go-blue)
+[![许可证](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Go](https://img.shields.io/badge/Language-go-blue)
+
 `rpkiemu-go`是一个go语言实现的，基于容器技术的，RPKI网络仿真系统
 
 ## 目录
@@ -13,16 +13,18 @@
   - [许可证](#许可证)
 
 ## 安装
-略
-```bash
-
-```
+见[安装](docs/install/install.md)
 
 ## 使用
-略
+本项目的配置文件为`.rpkiemu-go.json`，关于其中的所有选项介绍见[配置说明](docs/configDoc.md)
+
+### 数据生成
+```bash
+rpkiemu-go ca generate 
+```
 
 ## 致谢
-[感谢这个B V3rgilius/bgpemu (github.com)](https://github.com/V3rgilius/bgpemu)
+感谢这个B[V3rgilius/bgpemu (github.com)](https://github.com/V3rgilius/bgpemu)
 
 ## 许可证
 本项目采用 MIT 许可证。详细信息请查阅 [LICENSE](LICENSE) 文件。
