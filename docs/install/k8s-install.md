@@ -283,41 +283,9 @@ sudosystemctllist-unit-files|grepdocker
 
 sudomkdir-p/etc/docker
 
+sudo systemctl daemon-reload
 
-sudotee/etc/docker/daemon.json<<-'EOF'
-
-{
-
-  "registry-mirrors": [
-
-  "https://registry.docker-cn.com",
-
-  "http://hub-mirror.c.163.com",
-
-  "https://docker.mirrors.ustc.edu.cn"
-
-  ],
-
-  "exec-opts": ["native.cgroupdriver=systemd"],
-
-  "proxies": {
-
-    "http-proxy": "http://192.168.106.140:7890",
-
-    "https-proxy": "http://192.168.106.140:7890",
-
-    "no-proxy": "*127.0.0.0/8"
-
-  }
-
-}
-
-EOF
-
-
-sudosystemctldaemon-reload
-
-sudosystemctlrestartdocker
+sudo systemctl restart docker
 
 ```
 

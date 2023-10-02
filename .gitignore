@@ -3,3 +3,4 @@ rpkiemu-go
 examples
 go.sum
 execute.log
+tmp

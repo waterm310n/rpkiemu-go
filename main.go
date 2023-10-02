@@ -15,7 +15,7 @@ func setLog() (*os.File,error) {
     }
     logger := slog.New(slog.NewTextHandler(f, &slog.HandlerOptions{
 		AddSource: true,
-		Level: slog.LevelError,
+		Level: slog.LevelInfo,
 	}))
     slog.SetDefault(logger)
 	return f,nil
