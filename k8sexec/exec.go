@@ -9,21 +9,17 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"io"
 	"log/slog"
 	"os"
 	"strings"
-	"fmt"
-	"archive/tar"
 
-	"github.com/spf13/viper"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/cli-runtime/pkg/genericiooptions"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
-
 )
 
 type ExecOptions struct {
@@ -36,7 +32,7 @@ type ExecOptions struct {
 }
 
 func NewExecOptions(namespace, podName, containerName string) (*ExecOptions, error) {
-	kubeConfig := viper.GetString("kubeConfig")
+	kubeConfig := "/home/master/.kube/config"
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfig)
 	if err != nil {
 		slog.Error(err.Error())
@@ -93,42 +89,22 @@ func (p *ExecOptions) Exec(cmd string) (map[string][]byte, error) {
 	}, err
 }
 
+// 文件上传到pod中，要求容器中有tar命令。
 func (p *ExecOptions) Upload(srcFile string, dstFile string) error {
-	if _, err := os.Stat(srcFile); err != nil {
-		return fmt.Errorf("%s doesn't exist in local filesystem", srcFile)
+	/*
+		使用tar进行文件或者文件夹复制
+		tar cf - <文件> | tar xf - -C <目的地址>/
+	*/
+	src := fileSpec{
+		File: newLocalPath(srcFile),
 	}
-	reader, writer := io.Pipe()
-	go func(){
-		defer writer.Close()
-		cmdutil.CheckErr(makeTar("./demo", "/demo", writer))
-	}()
-	req := p.clientset.CoreV1().RESTClient().Post().
-		Resource("pods").
-		Name(p.PodName).
-		Namespace(p.Namespace).
-		SubResource("exec").
-		VersionedParams(&v1.PodExecOptions{
-			Command:   []string{"tar", "-xmf", "-"},
-			Container: p.ContainerName,
-			Stdin:     false,
-			Stdout:    true,
-			Stderr:    true,
-			TTY:       false,
-		}, scheme.ParameterCodec)
-	// 执行命令
-	executor, err := remotecommand.NewSPDYExecutor(p.config, "POST", req.URL())
-	if err != nil {
-		return err
+	dest := fileSpec{
+		PodName:      p.PodName,
+		PodNamespace: p.Namespace,
+		File:         newRemotePath(dstFile),
 	}
-	executor.StreamWithContext(context.TODO(),remotecommand.StreamOptions{
-		Stdin: reader,
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
-		Tty:    false,
-
-	})
-	slog.Info("Upload func run")
-	if err != nil {
+	o := NewCopyOptions(genericiooptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stdout})
+	if err := o.copyToPod(src, dest,p); err != nil {
 		return err
 	}
 	return nil
@@ -157,14 +133,4 @@ func (p *ExecOptions) GetLog(limitLine int) ([]string, error) {
 		}
 	}
 	return logs, nil
-}
-
-//代码来自kubectl的cp.go
-func makeTar(srcfile ,destfile string, writer io.Writer) error {
-	tarWriter := tar.NewWriter(writer)
-	defer tarWriter.Close()
-
-	srcPath := src.Clean()
-	destPath := dest.Clean()
-	return recursiveTar(srcPath.Dir(), srcPath.Base(), destPath.Dir(), destPath.Base(), tarWriter)
 }

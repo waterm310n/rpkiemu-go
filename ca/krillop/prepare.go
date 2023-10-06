@@ -31,19 +31,24 @@ rsync_jail = "rsync://rsyncd.%s.publication/repo/"
 ta_uri = "https://nginx.%s.publication/ta/ta.cer"
 ta_aia = "rsync://rsyncd.%s.publication/ta/ta.cer"
 `
-//在tmp目录下创建容器名.conf
-func createKrillConfig(dataDir,containerName string,isRIR bool) error {
+
+// 在tmp目录下创建容器名.conf
+func createKrillConfig(dataDir, containerName string, isRIR bool) error {
 	var err error
-	file,err:= os.Create("tmp/"+containerName+".conf")
+	if err := os.MkdirAll(dataDir, os.ModePerm); err != nil  {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+	file, err := os.OpenFile(dataDir+"/"+containerName+".conf",os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	defer file.Close()
-	if err != nil{
+	if err != nil {
 		slog.Error(err.Error())
 		return err
 	}
-	if isRIR{
-		_,err = file.WriteString(fmt.Sprintf(KRILL_TESTBED_TEMPLATE,containerName,containerName,containerName,containerName,containerName))
-	}else{
-		_,err = file.WriteString(fmt.Sprintf(KRILL_TEMPLATE,containerName))
+	if isRIR {
+		_, err = file.WriteString(fmt.Sprintf(KRILL_TESTBED_TEMPLATE, containerName, containerName, containerName, containerName, containerName))
+	} else {
+		_, err = file.WriteString(fmt.Sprintf(KRILL_TEMPLATE, containerName))
 	}
 	return err
 }
