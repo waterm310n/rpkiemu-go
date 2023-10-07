@@ -9,6 +9,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"strings"
@@ -52,7 +53,7 @@ func NewExecOptions(namespace, podName, containerName string) (*ExecOptions, err
 	}, nil
 }
 
-func (p *ExecOptions) Exec(cmd string) (map[string][]byte, error) {
+func (p *ExecOptions) Exec(cmd string) ([]byte, error) {
 	p.Command[2] = cmd
 	req := p.clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
@@ -78,15 +79,9 @@ func (p *ExecOptions) Exec(cmd string) (map[string][]byte, error) {
 		Stdout: &stdout,
 		Stderr: &stderr,
 	}); err != nil {
-		return map[string][]byte{
-			"stdout": stdout.Bytes(),
-			"stderr": stderr.Bytes(),
-		}, err
+		return stdout.Bytes(), fmt.Errorf(stderr.String())
 	}
-	return map[string][]byte{
-		"stdout": stdout.Bytes(),
-		"stderr": stderr.Bytes(),
-	}, err
+	return stdout.Bytes(),nil
 }
 
 // 文件上传到pod中，要求容器中有tar命令。

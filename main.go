@@ -22,10 +22,10 @@ func setLog() (*os.File,error) {
 }
 
 func main() {
-	if f,err := setLog() ; err != nil{
-		slog.Error(err.Error())
-	}else{
-		defer f.Close()
-	}
+	// if f,err := setLog() ; err != nil{
+	// 	slog.Error(err.Error())
+	// }else{
+	// 	defer f.Close()
+	// }
 	cmd.Execute()
 }
