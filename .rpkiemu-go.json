@@ -1,6 +1,6 @@
 {
     "databaseConfig":{
-        "host": "172.19.220.163",
+        "host": "192.168.106.140",
         "user": "root",
         "password": "123456",
         "port": 3306,
@@ -13,5 +13,13 @@
         "ases": ["AS8393"],
         "limitLayer":5
     },
-    "kubeConfig":"/home/master/.kube/config"
+    "kubeConfig":"/home/master/.kube/config",
+    "publishPoints":{
+       "ripe":{
+            "namespace":"bgp",
+            "podName":"r5",
+            "containerName":"ripe",
+            "isRIR":true
+       } 
+    }
 }

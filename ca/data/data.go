@@ -37,8 +37,8 @@ type databaseConfig struct {
 	LimitLayer int
 }
 
-// handle结构体
-type handle struct {
+// Handle结构体
+type Handle struct {
 	CertName     string
 	PublishPoint string
 	Ipv4         []string
@@ -142,7 +142,7 @@ func checkAsn(parts []string) bool {
 }
 
 // 从ipResources，asResources，uri中提取信息构造handle
-func preProcessing(ipResources, asResources, uri string) *handle {
+func preProcessing(ipResources, asResources, uri string) *Handle {
 	asResources = ASN_MATCH.ReplaceAllString(asResources, "AS$1")
 	asResources = ASN_MINMAX_MATCH.ReplaceAllString(asResources, "$1-$2")
 	asn := []string{}
@@ -156,7 +156,7 @@ func preProcessing(ipResources, asResources, uri string) *handle {
 	ipv4, ipv6 := splitIpType(ipResources)
 	parts := URI_MATCH.FindStringSubmatch(uri)
 	publishPoint := strings.Split(parts[2], ".")[len(strings.Split(parts[2], "."))-2]
-	return &handle{
+	return &Handle{
 		Ipv4:         ipv4,
 		Ipv6:         ipv6,
 		Asn:          asn,
@@ -174,7 +174,7 @@ func writeRoas(roasStmt *sql.Stmt, aia string, path string) {
 	helper := func(Ipaddrblocks, AsId string) []string {
 		var f interface{}
 		res := []string{}
-		//TODO用接口写好麻烦，以后用结构体反序列化
+		//用接口写好麻烦，以后用结构体反序列化，算了会了也懒得改了
 		json.Unmarshal([]byte(Ipaddrblocks), &f)
 		if ipAddrBlocks, ok := f.(map[string]interface{})["ipAddrBlocks"]; ok {
 			if ipAddrBlocks, ok := ipAddrBlocks.([]interface{}); ok {
@@ -257,7 +257,7 @@ func dfsHierarchy(hierarchyStmt *sql.Stmt, roasStmt *sql.Stmt, dataDir string, d
 		if err != nil {
 			slog.Error(err.Error())
 		}
-		if content, err := json.Marshal(&handle{
+		if content, err := json.Marshal(&Handle{
 			Ipv4:         []string{"0.0.0.0/0"},
 			Ipv6:         []string{"::/0"},
 			Asn:          []string{"AS0-AS4294967295"},

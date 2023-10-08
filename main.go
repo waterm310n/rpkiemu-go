@@ -15,17 +15,17 @@ func setLog() (*os.File,error) {
     }
     logger := slog.New(slog.NewTextHandler(f, &slog.HandlerOptions{
 		AddSource: true,
-		Level: slog.LevelInfo,
+		Level: slog.LevelDebug,
 	}))
     slog.SetDefault(logger)
 	return f,nil
 }
 
 func main() {
-	// if f,err := setLog() ; err != nil{
-	// 	slog.Error(err.Error())
-	// }else{
-	// 	defer f.Close()
-	// }
+	if f,err := setLog() ; err != nil{
+		slog.Error(err.Error())
+	}else{
+		defer f.Close()
+	}
 	cmd.Execute()
 }
