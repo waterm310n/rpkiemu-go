@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"path/filepath"
 	"strings"
-
+	"strconv"
 	"github.com/waterm310n/rpkiemu-go/k8sexec"
 )
 
@@ -48,6 +48,10 @@ func (kCA *krillK8sCA) Configure() error {
 
 func (kCA *krillK8sCA) createHandle(handle string) {
 	if _, err := kCA.Exec(fmt.Sprintf("krillc add --ca %s", handle)); err != nil && err.Error() != fmt.Sprintf("Error: CA '%s' was already initialized\n", handle) {
+		slog.Error(err.Error())
+	}
+	path := filepath.Join("/tmp",handle)
+	if _,err := kCA.Exec(fmt.Sprintf("mkdir %s",path));err != nil && err.Error() != fmt.Sprintf("mkdir: can't create directory '%s': File exists\n",path) {
 		slog.Error(err.Error())
 	}
 }
@@ -219,19 +223,21 @@ func (kCA *krillK8sCA) setChild(handle string, childHandle string, ipv4 []string
 	fmt.Print(len(ipv4))
 	if ipv4 != nil && len(ipv4) != 0 {
 		cmd = append(cmd, "--ipv4")
-		cmd = append(cmd, strings.Join(ipv4, ","))
+		cmd = append(cmd, strconv.Quote(strings.Join(ipv4, ",")))
 	}
 	if ipv6 != nil && len(ipv6) != 0 {
 		cmd = append(cmd, "--ipv6")
-		cmd = append(cmd, strings.Join(ipv6, ","))
+		cmd = append(cmd, strconv.Quote(strings.Join(ipv6, ",")))
 	}
 	if asn != nil && len(asn) != 0 {
 		cmd = append(cmd, "--asn")
-		cmd = append(cmd, strings.Join(asn, ","))
+		cmd = append(cmd, strconv.Quote(strings.Join(asn, ",")))
 	}
 	cmd = append(cmd, ">")
 	cmd = append(cmd, parentResponseFileName)
-	if _, err := kCA.Exec(strings.Join(cmd, " ")); err != nil && err.Error() != fmt.Sprintf("Error: CA '%s' already has a child named '%s'\n", handle, childHandle) {
+	cmdStr := strings.Join(cmd, " ")
+	if _, err := kCA.Exec(cmdStr); err != nil && err.Error() != fmt.Sprintf("Error: CA '%s' already has a child named '%s'\n", handle, childHandle) {
+		slog.Error(cmdStr)
 		return err
 	}
 	return nil
@@ -239,7 +245,7 @@ func (kCA *krillK8sCA) setChild(handle string, childHandle string, ipv4 []string
 
 func (kCA *krillK8sCA) setParent(handle string, parentHandle string) error {
 	parentResponseFileName := filepath.Join("/tmp",handle,PARENT_RESPONSE_FILENAME)
-	if _, err := kCA.Exec(fmt.Sprintf("krillc parents add --parent %s --ca %s --response %s", parentHandle, handle, parentResponseFileName)); err != nil && err.Error() != fmt.Sprint("ERROR Invalid RFC 8183 XML: malformed XML\n") {
+	if _, err := kCA.Exec(fmt.Sprintf("krillc parents add --parent %s --ca %s --response %s", parentHandle, handle, parentResponseFileName)); err != nil && err.Error() != fmt.Sprint("Invalid RFC 8183 XML: malformed XML\n") {
 		return err
 	}
 	return nil
