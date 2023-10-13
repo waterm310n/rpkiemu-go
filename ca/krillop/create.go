@@ -8,8 +8,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 	"sync"
+	"time"
+
 	"github.com/spf13/viper"
 	"github.com/waterm310n/rpkiemu-go/ca/data"
 	"github.com/waterm310n/rpkiemu-go/k8sexec"
@@ -49,7 +50,7 @@ type CA interface {
 
 	addAsnIpPair(handle, ip, asn string)    //在当前CA为指定handle添加一条ASN-IP对
 	removeAsnIpPair(handle, ip, asn string) //在当前CA为指定handle删除一条ASN-IP对
-	addDeltaRoa(handle, file string)        //在当前CA中
+	addDeltaRoa(handle, file string)        //在当前CA中,为指定handle插入一个文件包含的ASN-IP对
 }
 
 // 分割目录，资源证书文件，roas文件
@@ -141,7 +142,6 @@ func CreateHierarchy(dataDir string) {
 			slog.Error(err.Error())
 			continue
 		}
-
 		if v.children != nil {
 			recursiveCreateHierarchy(publishPoint, certName, filepath.Join(dataDir, v.children.Name()), caOps)
 		}

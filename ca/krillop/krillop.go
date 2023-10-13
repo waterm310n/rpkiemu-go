@@ -266,7 +266,11 @@ func (kCA *krillK8sCA) removeAsnIpPair(handle string, ip string, asn string) {
 }
 
 func (kCA *krillK8sCA) addDeltaRoa(handle string, file string) {
-	if _, err := kCA.Exec(fmt.Sprintf("krillc roas update --delta %s --ca %s", file, handle)); err != nil {
+	dstFile := filepath.Join("/tmp",filepath.Base(file))
+	if err := kCA.Upload(file,dstFile) ; err != nil{
+		slog.Error(err.Error())
+	}
+	if _, err := kCA.Exec(fmt.Sprintf("krillc roas update --delta %s --ca %s", dstFile, handle)); err != nil {
 		slog.Error(err.Error())
 	}
 }
