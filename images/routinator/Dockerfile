@@ -8,4 +8,5 @@ RUN apk add --update --no-cache curl jq py3-configobj py3-setuptools python3 pyt
 RUN chmod -R 777 /opt/entrypoint.sh 
 USER routinator
 WORKDIR /home/routinator
-ENTRYPOINT ["/opt/entrypoint.sh"]
+CMD ["sleep","2000000"]
+# ENTRYPOINT ["/opt/entrypoint.sh"]

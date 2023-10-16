@@ -21,6 +21,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
+	"time"
 )
 
 type ExecOptions struct {
@@ -73,8 +74,10 @@ func (p *ExecOptions) Exec(cmd string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	ctx,cancel := context.WithTimeout(context.Background(),time.Second*2)
+	defer cancel()
 	var stdout, stderr bytes.Buffer
-	if err = executor.StreamWithContext(context.TODO(), remotecommand.StreamOptions{
+	if err = executor.StreamWithContext(ctx, remotecommand.StreamOptions{
 		Stdin:  nil,
 		Stdout: &stdout,
 		Stderr: &stderr,

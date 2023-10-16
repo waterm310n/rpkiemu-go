@@ -18,4 +18,6 @@ func init(){
 	CaCmd.AddCommand(CreateCmd)
 	PublishCmd.PersistentFlags().StringP("dataDir","d","examples", "数据目录")
 	CaCmd.AddCommand(PublishCmd)
+	SetUpCmd.PersistentFlags().StringP("dataDir","d","tmp", "临时数据目录")
+	CaCmd.AddCommand(SetUpCmd)
 }

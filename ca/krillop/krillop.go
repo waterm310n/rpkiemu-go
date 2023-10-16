@@ -36,10 +36,11 @@ func NewKrillK8sCA(p *k8sexec.ExecOptions, isRIR bool) *krillK8sCA {
 }
 
 // 更新容器中的krill配置
-func (kCA *krillK8sCA) Configure() error {
-	if err := kCA.Upload("tmp/"+kCA.ContainerName+".conf", "/var/krill/data/krill.conf"); err != nil {
+func (kCA *krillK8sCA) Configure(dataDir string) error {
+	if err := kCA.Upload(filepath.Join(dataDir,kCA.PodName+".conf"), "/var/krill/data/krill.conf"); err != nil {
 		return err
 	}
+	//这条命令存在问题
 	if _, err := kCA.Exec("krill -c /var/krill/data/krill.conf"); err != nil {
 		return err
 	}
@@ -220,7 +221,6 @@ func (kCA *krillK8sCA) setChild(handle string, childHandle string, ipv4 []string
 	cmd := []string{"krillc children add --ca", handle,
 		"--child", childHandle,
 		"--request", childrenRequestLocationFileName}
-	fmt.Print(len(ipv4))
 	if ipv4 != nil && len(ipv4) != 0 {
 		cmd = append(cmd, "--ipv4")
 		cmd = append(cmd, strconv.Quote(strings.Join(ipv4, ",")))

@@ -101,9 +101,14 @@ func createCAOp() map[string]CA {
 	caOps := make(map[string]CA)
 	viper.Sub("publishPoints").Unmarshal(&publishPoints)
 	for name, v := range publishPoints {
+		// if err := createKrillConfig(dataDir,v.PodName,v.IsRIR) ; err != nil{
+		// 	slog.Error(err.Error())
+		// }
 		if execOptions, err := k8sexec.NewExecOptions(v.Namespace, v.PodName, v.ContainerName); err == nil {
 			kCA := NewKrillK8sCA(execOptions, v.IsRIR)
-			kCA.Configure()
+			// if err := kCA.Configure(dataDir);err!=nil{
+			// 	slog.Debug(err.Error())
+			// }
 			caOps[name] = kCA
 		}
 	}
@@ -133,6 +138,10 @@ func CreateHierarchy(dataDir string) {
 	for certName, v := range entries {
 		handle := getHandleFromPath(filepath.Join(dataDir, v.resource.Name()))
 		publishPoint := handle.PublishPoint
+		if  _,ok:= caOps[publishPoint] ; !ok {
+			slog.Error(publishPoint+"is not exsist")
+			continue
+		}
 		caOps[publishPoint].createHandle(certName)
 		if err := setRepo(publishPoint, publishPoint, certName, caOps); err != nil {
 			slog.Error(err.Error())
@@ -165,6 +174,9 @@ func recursiveCreateHierarchy(parentPublishPoint, parentCertName, dataDir string
 		wg.Add(1)
 		go func() {
 			if publishPoint == parentPublishPoint {
+				if caOps[publishPoint] == nil {
+					return
+				}
 				caOps[publishPoint].createHandle(certName)
 				if err := setRepo(publishPoint, publishPoint, certName, caOps); err != nil {
 					slog.Error(err.Error())
