@@ -1,4 +1,4 @@
-package ca
+package cacmd
 
 import (
 	"log/slog"

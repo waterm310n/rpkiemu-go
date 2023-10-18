@@ -17,16 +17,14 @@ source /opt/my_funcs.sh
 #使用-O的目的是为了支持覆盖文件的能力
 OLD_IFS="$IFS"
 IFS=";"
-arr=($SRC_TALS)
 IFS="$OLD_IFS"
+SRC_TAL=$*
 
-for index in ${!arr[@]}
+for arg in $SRC_TAL
 do 
-arr2=(${arr[$index]//// })
-# my_retry 12 5 wget --no-check-certificate ${arr[$index]} -O ${TAL_DIR}/${arr2[1]}.tal > /dev/null
-install_tal ${arr[$index]} ${TAL_DIR}/${arr2[1]}.tal
+arr2=(${arg//// })
+install_tal ${arg} ${TAL_DIR}/${arr2[1]}.tal
 done
-
 
 cd ${DATA_DIR}
 

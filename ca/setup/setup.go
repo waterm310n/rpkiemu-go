@@ -32,8 +32,10 @@ func configureKrill(dataDir string,publishPoints map[string]PublishPoint) {
 }
 
 func configureRsyncd(publishPoints map[string]PublishPoint){
+	
 	for _,v := range publishPoints {
-		if execOptions, err := k8sexec.NewExecOptions(v.Namespace, v.PodName, v.ContainerName); err == nil {
+		containerName := v.PodName+"-rsyncd"
+		if execOptions, err := k8sexec.NewExecOptions(v.Namespace, v.PodName, containerName); err == nil {
 			kRsync := rsyncdop.NewRsyncK8s(execOptions)
 			const cerTemplate = "https://%s:3000/ta/ta.cer"
 			const talTemplate = "https://%s:3000/ta/ta.tal"

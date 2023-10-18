@@ -1,4 +1,4 @@
-package rp
+package rpcmd
 
 import (
 	"fmt"

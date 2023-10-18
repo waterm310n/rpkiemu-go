@@ -76,6 +76,8 @@ func extract(dirEntries []fs.DirEntry) map[string]*fileEntry {
 					roas: entry,
 				}
 			}
+		case strings.HasSuffix(entry.Name(), ".conf"):
+			continue
 		default:
 			name := entry.Name()
 			if _, ok := entries[name]; ok {
@@ -138,8 +140,8 @@ func CreateHierarchy(dataDir string) {
 	for certName, v := range entries {
 		handle := getHandleFromPath(filepath.Join(dataDir, v.resource.Name()))
 		publishPoint := handle.PublishPoint
-		if  _,ok:= caOps[publishPoint] ; !ok {
-			slog.Error(publishPoint+"is not exsist")
+		if _, ok := caOps[publishPoint]; !ok {
+			slog.Error(publishPoint + "is not exist")
 			continue
 		}
 		caOps[publishPoint].createHandle(certName)

@@ -18,7 +18,7 @@
        "ripe":{
             "namespace":"bgp",
             "podName":"r5",
-            "containerName":"ripe",
+            "containerName":"r5-ripe",
             "isRIR":true
        } 
     }
