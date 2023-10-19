@@ -4,7 +4,6 @@ USER root
 RUN apk add bash 
 COPY *.json *.sh *.crt routinator.conf /opt/ 
 RUN chmod -R 777 /opt/entrypoint.sh 
-USER routinator
-WORKDIR /home/routinator
+WORKDIR /root
 ENTRYPOINT [""]
 CMD ["/bin/sleep","2000000"]

@@ -18,6 +18,7 @@ func NewRsyncK8s(p *k8sexec.ExecOptions) *RsyncK8s {
 		ExecOptions: p,
 	}
 }
+
 func (kRsync *RsyncK8s) ConfigureCerAndTal(args ...string) error{
 	cmd := "/opt/entrypoint.sh "
 	for _, arg := range args {

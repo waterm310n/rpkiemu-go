@@ -4,13 +4,13 @@
 #set -o pipefail指输出从右往左的管道中第一个非零返回值
 set -e -u -o pipefail 
 
-DATA_DIR=/home/routinator
-TAL_DIR=~/.rpki-cache/tals
+DATA_DIR=/root
+TAL_DIR=/root/.rpki-cache/tals
 mkdir -p ${DATA_DIR}
 mkdir -p ${TAL_DIR}
 
-cp /opt/routinator.conf ~/.routinator.conf
-cp /opt/exceptionSlurm.json ~/exceptionSlurm.json
+cp /opt/routinator.conf /root/.routinator.conf
+cp /opt/exceptionSlurm.json /root/exceptionSlurm.json
 export BANNER="Routinator setup for Krill"
 source /opt/my_funcs.sh
 
@@ -32,7 +32,7 @@ my_log "Launching Routinator"
 routinator \
     --strict \
     --fresh \
-    --config ~/.routinator.conf \
+    --config /root/.routinator.conf \
     --rrdp-root-cert=/opt/rootCA.crt \
     -vvv \
     server \

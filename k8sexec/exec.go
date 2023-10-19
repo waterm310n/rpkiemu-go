@@ -82,7 +82,11 @@ func (p *ExecOptions) Exec(cmd string) ([]byte, error) {
 		Stdout: &stdout,
 		Stderr: &stderr,
 	}); err != nil {
-		return stdout.Bytes(), fmt.Errorf(stderr.String())
+		if err.Error() == "context deadline exceeded"{
+			slog.Warn(err.Error(),"cmd",cmd)
+		}else{
+			return stdout.Bytes(), fmt.Errorf(stderr.String())
+		}
 	}
 	return stdout.Bytes(),nil
 }

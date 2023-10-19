@@ -21,5 +21,12 @@
             "containerName":"r5-ripe",
             "isRIR":true
        } 
+    },
+    "relyParties":{
+        "AS8393Rely":{
+            "namespace":"bgp",
+            "podName":"r4",
+            "containerName":"r4-routinator"  
+        }
     }
 }

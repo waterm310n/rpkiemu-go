@@ -20,7 +20,6 @@ do
         my_log "Waiting for TA trust anchor location"
         #使用-O的目的是为了支持覆盖文件的能力
         my_retry 12 5 wget --no-check-certificate $arg -O ta.tal > /dev/null
-        echo tal c
     fi
 done
 

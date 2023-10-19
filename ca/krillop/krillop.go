@@ -236,8 +236,10 @@ func (kCA *krillK8sCA) setChild(handle string, childHandle string, ipv4 []string
 	cmd = append(cmd, ">")
 	cmd = append(cmd, parentResponseFileName)
 	cmdStr := strings.Join(cmd, " ")
-	if _, err := kCA.Exec(cmdStr); err != nil && err.Error() != fmt.Sprintf("Error: CA '%s' already has a child named '%s'\n", handle, childHandle) {
-		slog.Error(cmdStr)
+	if _, err := kCA.Exec(cmdStr); err != nil && 
+		err.Error() != fmt.Sprintf("Error: CA '%s' already has a child named '%s'\n", handle, childHandle) && 
+		err.Error() != fmt.Sprintf("Error: Child '%s' cannot have resources not held by CA %s'\n",childHandle,handle){
+		slog.Error(err.Error(),"cmd",cmdStr)
 		return err
 	}
 	return nil
