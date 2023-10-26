@@ -93,6 +93,14 @@ func (kCA *krillK8sCA) getHandles() []string {
 	return handles
 }
 
+/**/
+func (kCA *krillK8sCA) getFile(srcFile,dstFile string) error{
+	//TODO 
+	var err error
+	kCA.Download(srcFile,dstFile)
+	return err
+}
+
 // 获取一个handle下的所有下级handle
 func (kCA *krillK8sCA) getChildren(handle string) []string {
 	if out, err := kCA.Exec(fmt.Sprintf("krillc show --ca %s -f json", handle)); err == nil {

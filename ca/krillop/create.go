@@ -103,14 +103,8 @@ func createCAOp() map[string]CA {
 	caOps := make(map[string]CA)
 	viper.Sub("publishPoints").Unmarshal(&publishPoints)
 	for name, v := range publishPoints {
-		// if err := createKrillConfig(dataDir,v.PodName,v.IsRIR) ; err != nil{
-		// 	slog.Error(err.Error())
-		// }
 		if execOptions, err := k8sexec.NewExecOptions(v.Namespace, v.PodName, v.ContainerName); err == nil {
 			kCA := NewKrillK8sCA(execOptions, v.IsRIR)
-			// if err := kCA.Configure(dataDir);err!=nil{
-			// 	slog.Debug(err.Error())
-			// }
 			caOps[name] = kCA
 		}
 	}
@@ -175,10 +169,10 @@ func recursiveCreateHierarchy(parentPublishPoint, parentCertName, dataDir string
 		publishPoint := handle.PublishPoint
 		wg.Add(1)
 		go func() {
+			if caOps[publishPoint] == nil {
+				return
+			}
 			if publishPoint == parentPublishPoint {
-				if caOps[publishPoint] == nil {
-					return
-				}
 				caOps[publishPoint].createHandle(certName)
 				if err := setRepo(publishPoint, publishPoint, certName, caOps); err != nil {
 					slog.Error(err.Error())
@@ -189,9 +183,14 @@ func recursiveCreateHierarchy(parentPublishPoint, parentCertName, dataDir string
 				if children != nil {
 					recursiveCreateHierarchy(publishPoint, certName, filepath.Join(dataDir, children.Name()), caOps)
 				}
+			} else {
+				slog.Debug(publishPoint)
+				caOps[publishPoint].createHandle(certName)
+				if err := setRepo(publishPoint, parentPublishPoint, certName, caOps); err != nil {
+					slog.Error(err.Error())
+				}
 			}
 			wg.Done()
-			//TODO 不在同一CA暂时先空着
 		}()
 	}
 	wg.Wait()
@@ -217,8 +216,19 @@ func setRepo(publishPoint, parentPublishPoint, certName string, caOps map[string
 				time.Sleep(1 * time.Second)
 				continue
 			}
+			break
 		}
 
+	} else {
+		cnt := 0
+		for ; cnt < 5; cnt++ {
+			if err := caOps[publishPoint].getRepoRequest(certName); err != nil {
+				cnt++
+				time.Sleep(1 * time.Second)
+				continue
+			}
+
+		}
 	}
 	return err
 }
@@ -243,6 +253,7 @@ func setParentChildrenRel(publishPoint, parentPublishPoint, certName, parentCert
 				time.Sleep(1 * time.Second)
 				continue
 			}
+			break
 		}
 	}
 	return err

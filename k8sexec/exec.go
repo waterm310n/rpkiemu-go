@@ -14,6 +14,8 @@ import (
 	"os"
 	"strings"
 
+	"time"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/cli-runtime/pkg/genericiooptions"
 	"k8s.io/client-go/kubernetes"
@@ -21,7 +23,6 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
-	"time"
 )
 
 type ExecOptions struct {
@@ -30,7 +31,7 @@ type ExecOptions struct {
 	Namespace     string
 	PodName       string
 	ContainerName string
-	Command       [3]string
+	Command       []string
 }
 
 func NewExecOptions(namespace, podName, containerName string) (*ExecOptions, error) {
@@ -50,7 +51,7 @@ func NewExecOptions(namespace, podName, containerName string) (*ExecOptions, err
 		Namespace:     namespace,
 		PodName:       podName,
 		ContainerName: containerName,
-		Command:       [3]string{"/bin/sh", "-c", ""},
+		Command:       []string{"/bin/sh", "-c", ""},
 	}, nil
 }
 
@@ -74,7 +75,7 @@ func (p *ExecOptions) Exec(cmd string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	ctx,cancel := context.WithTimeout(context.Background(),time.Second*2)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 	var stdout, stderr bytes.Buffer
 	if err = executor.StreamWithContext(ctx, remotecommand.StreamOptions{
@@ -82,13 +83,13 @@ func (p *ExecOptions) Exec(cmd string) ([]byte, error) {
 		Stdout: &stdout,
 		Stderr: &stderr,
 	}); err != nil {
-		if err.Error() == "context deadline exceeded"{
-			slog.Warn(err.Error(),"cmd",cmd)
-		}else{
+		if err.Error() == "context deadline exceeded" {
+			slog.Warn(err.Error(), "cmd", cmd)
+		} else {
 			return stdout.Bytes(), fmt.Errorf(stderr.String())
 		}
 	}
-	return stdout.Bytes(),nil
+	return stdout.Bytes(), nil
 }
 
 // 文件上传到pod中，要求容器中有tar命令。
@@ -106,15 +107,27 @@ func (p *ExecOptions) Upload(srcFile string, dstFile string) error {
 		File:         newRemotePath(dstFile),
 	}
 	o := NewCopyOptions(genericiooptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stdout})
-	if err := o.copyToPod(src, dest,p); err != nil {
+	if err := o.copyToPod(src, dest, p); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (p *ExecOptions) Download(srcFile string, dstFile string) error {
-	slog.Info("Download func run")
-	// TODO
+	//这次抄kubectl cp from pod比较多，hh
+	slog.Debug("Download func run")
+	src := fileSpec{
+		PodName:      p.PodName,
+		PodNamespace: p.Namespace,
+		File:         newRemotePath(srcFile),
+	}
+	dest := fileSpec{
+		File: newLocalPath(dstFile),
+	}
+	o := NewCopyOptions(genericiooptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stdout})
+	if err := o.copyFromPod(src, dest, p); err != nil {
+		return err
+	}
 	return nil
 }
 
