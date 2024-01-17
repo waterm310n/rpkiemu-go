@@ -19,10 +19,16 @@
 本项目的配置文件为`.rpkiemu-go.json`，关于其中的所有选项介绍见[配置说明](docs/configDoc.md)
 
 ### 数据生成
+
 ```bash
 rpkiemu-go ca generate 
 ```
 
+### RPKI证书体系创建
+见[rpkiCreate](docs/manual/rpkiCreate.md)
+
+### RPKI恶意攻击模拟
+见[rpkiAttack](docs/manual/rpkiAttack.md)
 ## 致谢
 感谢这个B[V3rgilius/bgpemu (github.com)](https://github.com/V3rgilius/bgpemu)
 
