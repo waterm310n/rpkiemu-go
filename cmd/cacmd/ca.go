@@ -20,4 +20,7 @@ func init(){
 	CaCmd.AddCommand(PublishCmd)
 	SetUpCmd.PersistentFlags().StringP("dataDir","d","tmp", "临时数据目录")
 	CaCmd.AddCommand(SetUpCmd)
+	TransferCmd.PersistentFlags().StringP("sourceDataDir","i","examples", "数据目录")
+	TransferCmd.PersistentFlags().StringP("destDataDir","o","transfered_examples", "临时转换的数据目录")
+	CaCmd.AddCommand(TransferCmd)
 }

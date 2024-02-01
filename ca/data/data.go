@@ -201,6 +201,7 @@ func writeRoas(roasStmt *sql.Stmt, aia string, path string) {
 	for rows.Next() {
 		if flag {
 			file, err = os.Create(path)
+			defer file.Close()
 			if err != nil {
 				slog.Error(err.Error())
 				return
@@ -238,6 +239,7 @@ func dfsHierarchy(hierarchyStmt *sql.Stmt, roasStmt *sql.Stmt, dataDir string, d
 			handle := preProcessing(IPResources, ASResources, URI)
 			if checkAsn(handle.Asn) {
 				file, err := os.Create(dataDir + "/" + handle.CertName)
+				defer file.Close()
 				if err != nil {
 					slog.Error(err.Error())
 				}
@@ -254,6 +256,7 @@ func dfsHierarchy(hierarchyStmt *sql.Stmt, roasStmt *sql.Stmt, dataDir string, d
 		parts := URI_MATCH.FindStringSubmatch(rirsMap[v])
 		certName := "m" + parts[3]
 		file, err := os.Create(dataDir + "/" + certName)
+		defer file.Close()
 		if err != nil {
 			slog.Error(err.Error())
 		}
