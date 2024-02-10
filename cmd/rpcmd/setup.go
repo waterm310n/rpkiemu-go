@@ -12,7 +12,7 @@ var (
 		Use:   "setup",
 		Short: "对CA方中的krill,rsyncd,nginx等容器进行配置",
 		Run: func(cmd *cobra.Command, args []string) {
-			slog.Debug("run rp setup")
+			slog.Info("run rp setup")
 			routinatorop.Setup()
 		},
 	}

@@ -5,3 +5,6 @@ transfered_examples
 go.sum
 execute.log
 tmp
+tmp_publishPoints.json
+*.yaml
+.VSCodeCounter

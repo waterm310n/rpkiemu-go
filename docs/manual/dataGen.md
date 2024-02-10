@@ -56,3 +56,7 @@ docker run --net=host -p 3306:3306 --name mysql-docker -v ~/mysql/data:/var/lib/
 $ rpkiemu-go ca generate -d < 数据目录 > 
 # 默认情况会在执行命令所在的目录创建examples目录作为数据目录
 ```
+## 将RPKI数据与BGP数据结合
+```bash
+$ rpkiemu-go ca adapt -i < rpki发布点文件 > -t < bgp拓扑文件 > -o < 带有rpki发布点的bgp拓扑文件 >
+```

@@ -217,6 +217,14 @@ func writeRoas(roasStmt *sql.Stmt, aia string, path string) {
 
 // 深度优先搜索层次结构生成roas数据文件和层次结构数据文件
 func dfsHierarchy(hierarchyStmt *sql.Stmt, roasStmt *sql.Stmt, dataDir string, depth int) {
+	type PublishPoint struct{
+		IsRIR bool `json:"is_rir,omitempty"`
+	}
+	// 发布点与依赖方组合
+	type PointConfigure struct {
+		PublishPoints map[string]*PublishPoint `json:"publish_points,omitempty"`
+	}
+	publishPoints := make(map[string]*PublishPoint)
 	var helper func(string, string, int)
 	helper = func(dataDir string, aia string, depth int) {
 		if depth == 0 {
@@ -243,6 +251,9 @@ func dfsHierarchy(hierarchyStmt *sql.Stmt, roasStmt *sql.Stmt, dataDir string, d
 				if err != nil {
 					slog.Error(err.Error())
 				}
+				if _, ok := publishPoints[handle.PublishPoint]; !ok {
+					publishPoints[handle.PublishPoint] = &PublishPoint{false}
+				}
 				if content, err := json.Marshal(&handle); err == nil {
 					file.Write(content)
 					helper(dataDir+"/"+handle.CertName+"_children", URI, depth-1)
@@ -260,17 +271,28 @@ func dfsHierarchy(hierarchyStmt *sql.Stmt, roasStmt *sql.Stmt, dataDir string, d
 		if err != nil {
 			slog.Error(err.Error())
 		}
+		publishPoint := strings.Split(parts[2], ".")[len(strings.Split(parts[2], "."))-2]
 		if content, err := json.Marshal(&Handle{
 			Ipv4:         []string{"0.0.0.0/0"},
 			Ipv6:         []string{"::/0"},
 			Asn:          []string{"AS0-AS4294967295"},
 			CertName:     certName,
-			PublishPoint: strings.Split(parts[2], ".")[len(strings.Split(parts[2], "."))-2],
+			PublishPoint: publishPoint,
 		}); err == nil {
 			file.Write(content)
+			publishPoints[publishPoint] = &PublishPoint{true}
 			helper(dataDir+"/"+certName+"_children", rirsMap[v], depth-1)
 		}
 	}
+	file, err := os.Create("tmp_publishPoints.json")
+	defer file.Close()
+	if err != nil {
+		slog.Error(err.Error())
+	}
+	if content, err := json.Marshal(PointConfigure{publishPoints}); err == nil {
+		file.Write(content)
+	}
+
 }
 
 func GenerateData(dataDir string) {

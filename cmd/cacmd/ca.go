@@ -23,4 +23,9 @@ func init(){
 	TransferCmd.PersistentFlags().StringP("sourceDataDir","i","examples", "数据目录")
 	TransferCmd.PersistentFlags().StringP("destDataDir","o","transfered_examples", "临时转换的数据目录")
 	CaCmd.AddCommand(TransferCmd)
+	AdaptCmd.PersistentFlags().StringP("topoYaml","t","topo.yaml","bgpemu使用的topo.yaml配置")
+	AdaptCmd.PersistentFlags().StringP("publishPointsJson","i","tmp_publishPoints.json","写有发布点")
+	AdaptCmd.PersistentFlags().StringP("topoWithRPKIYaml","o","topoWithRPKI.yaml","运行CA方容器和依赖方容器的topo.yaml配置")
+
+	CaCmd.AddCommand(AdaptCmd)
 }

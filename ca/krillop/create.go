@@ -95,15 +95,15 @@ func extract(dirEntries []fs.DirEntry) map[string]*fileEntry {
 // 创建CA操作接口，从配置文件的publishPoints中读取
 func createCAOp() map[string]CA {
 	var publishPoints map[string]struct {
-		Namespace     string
-		PodName       string
-		ContainerName string
-		IsRIR         bool
+		Namespace           string `json:"namespace,omitempty" mapstructure:"namespace,omitempty"`
+		PodName             string `json:"pod_name,omitempty" mapstructure:"pod_name,omitempty"`
+		CAContainerName     string `json:"ca_container_name,omitempty" mapstructure:"ca_container_name,omitempty"`
+		IsRIR               bool   `json:"is_rir,omitempty" mapstructure:"is_rir,omitempty"`
 	}
 	caOps := make(map[string]CA)
-	viper.Sub("publishPoints").Unmarshal(&publishPoints)
+	viper.Sub("publish_points").Unmarshal(&publishPoints)
 	for name, v := range publishPoints {
-		if execOptions, err := k8sexec.NewExecOptions(v.Namespace, v.PodName, v.ContainerName); err == nil {
+		if execOptions, err := k8sexec.NewExecOptions(v.Namespace, v.PodName, v.CAContainerName); err == nil {
 			kCA := NewKrillK8sCA(execOptions, v.IsRIR)
 			caOps[name] = kCA
 		}

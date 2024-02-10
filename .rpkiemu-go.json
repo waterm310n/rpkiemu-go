@@ -1,38 +1,37 @@
 {
-    "databaseConfig":{
+    "databaseConfig": {
         "host": "192.168.106.140",
         "user": "root",
         "password": "123456",
         "port": 3306,
         "database": "rpki_db",
-        "rirs": ["RIPE"],
+        "rirs": [
+            "RIPE"
+        ],
         "tables": {
             "cas": "cas_new",
-            "roas":"roas_new"
+            "roas": "roas_new"
         },
-        "ases": ["AS8393"],
-        "limitLayer":5
+        "ases": [
+            "AS8393"
+        ],
+        "limitLayer": 5
     },
-    "kubeConfig":"/home/master/.kube/config",
-    "publishPoints":{
-       "ripe":{
-            "namespace":"bgp",
-            "podName":"r5",
-            "containerName":"r5-ripe",
-            "isRIR":true
-       } ,
-       "r2-child":{
-            "namespace":"bgp",
-            "podName":"r2-0",
-            "containerName":"r2-ca",
-            "isRIR":false
-       }
+    "kubeConfig": "/home/master/.kube/config",
+    "publish_points": {
+        "ripe": {
+            "namespace": "bgp",
+            "pod_name": "r4",
+            "ca_container_name": "r4-ripe",
+            "rsyncd_container_name": "r4-rsyncd",
+            "is_rir": true
+        }
     },
-    "relyParties":{
-        "AS8393Rely":{
-            "namespace":"bgp",
-            "podName":"r4",
-            "containerName":"r4-routinator"  
+    "rely_parties": {
+        "r5-routinator": {
+            "namespace": "bgp",
+            "pod_name": "r5",
+            "container_name": "r5-routinator"
         }
     }
 }
