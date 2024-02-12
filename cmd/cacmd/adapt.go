@@ -10,7 +10,7 @@ import (
 var (
 	AdaptCmd = &cobra.Command{
 		Use:   "adapt",
-		Short: "根据rpkiemu-go所需对",
+		Short: "根据rpkiemu-go所需对bgpemu拓扑文件进行修改",
 		Run: func(cmd *cobra.Command, args []string) {
 			topoYaml ,err := cmd.Flags().GetString("topoYaml")
 			if err != nil {

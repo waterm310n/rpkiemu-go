@@ -1,6 +1,7 @@
 rpkiemu-go
 .vscode
 examples
+attack_examples
 transfered_examples
 go.sum
 execute.log

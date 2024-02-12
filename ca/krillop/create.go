@@ -25,14 +25,14 @@ type fileEntry struct {
 
 /*一个CA可以操作的所有接口*/
 type CA interface {
-	createHandle(handle string)                     //在当前CA中创建指定handle
-	deleteHandle(handle string)                     //在当前CA中删除指定handle
-	getHandles() []string                           //获取当前CA管理的所有handle名
-	existHandle(handle string) bool                 //检查一个handle是否在当前CA
-	getChildren(handle string) []string             //获取当前handle的所有子handle名
-	getParent(handle string) []string               //获取当前handle的所有父亲handle名
-	getRoaName(handle, asn string) []string         //获取当前handle指定asn的所有Roa证书名
-	getCertName(handle, parentHandle string) string //获取当前handle从指定父handle获取的资源证书名
+	createHandle(handle string)                                              //在当前CA中创建指定handle
+	deleteHandle(handle string)                                              //在当前CA中删除指定handle
+	getHandles() []string                                                    //获取当前CA管理的所有handle名
+	existHandle(handle string) bool                                          //检查一个handle是否在当前CA
+	getChildren(handle string) []string                                      //获取当前handle的所有子handle名
+	getParent(handle string) []string                                        //获取当前handle的所有父亲handle名
+	getRoaName(handle string, asn int) (map[string]interface{}, error)       //获取当前handle指定asn的所有Roa证书名
+	getCertName(handle, parentHandle string) (map[string]interface{}, error) //获取当前handle从指定父handle获取的资源证书名
 
 	//下面是发布点处理方法
 
@@ -48,9 +48,16 @@ type CA interface {
 
 	//下面是roa发布处理方法
 
-	addAsnIpPair(handle, ip, asn string)    //在当前CA为指定handle添加一条ASN-IP对
-	removeAsnIpPair(handle, ip, asn string) //在当前CA为指定handle删除一条ASN-IP对
+	AddAsnIpPair(handle, ip, asn string)    //在当前CA为指定handle添加一条ASN-IP对
+	RemoveAsnIpPair(handle, ip, asn string) //在当前CA为指定handle删除一条ASN-IP对
 	addDeltaRoa(handle, file string)        //在当前CA中,为指定handle插入一个文件包含的ASN-IP对
+
+	//攻击时使用的操作
+	DeleteRoa(handle string, asn int)                                    //在handle中为破坏包含asn的所有roa证书
+	CorruptRoa(handle string, asn int)                                   //在handle中为破坏包含asn的所有roa证书
+	DeleteCert(handle string, parentHandle string, parentCa KrillK8sCA)  //在parentHandle中为删除handle的资源证书
+	CorruptCert(handle string, parentHandle string, parentCa KrillK8sCA) //在parentHandle中为删除handle的资源证书
+
 }
 
 // 分割目录，资源证书文件，roas文件
@@ -93,14 +100,14 @@ func extract(dirEntries []fs.DirEntry) map[string]*fileEntry {
 }
 
 // 创建CA操作接口，从配置文件的publishPoints中读取
-func createCAOp() map[string]CA {
+func CreateCAOp() map[string]*KrillK8sCA {
 	var publishPoints map[string]struct {
-		Namespace           string `json:"namespace,omitempty" mapstructure:"namespace,omitempty"`
-		PodName             string `json:"pod_name,omitempty" mapstructure:"pod_name,omitempty"`
-		CAContainerName     string `json:"ca_container_name,omitempty" mapstructure:"ca_container_name,omitempty"`
-		IsRIR               bool   `json:"is_rir,omitempty" mapstructure:"is_rir,omitempty"`
+		Namespace       string `json:"namespace,omitempty" mapstructure:"namespace,omitempty"`
+		PodName         string `json:"pod_name,omitempty" mapstructure:"pod_name,omitempty"`
+		CAContainerName string `json:"ca_container_name,omitempty" mapstructure:"ca_container_name,omitempty"`
+		IsRIR           bool   `json:"is_rir,omitempty" mapstructure:"is_rir,omitempty"`
 	}
-	caOps := make(map[string]CA)
+	caOps := make(map[string]*KrillK8sCA)
 	viper.Sub("publish_points").Unmarshal(&publishPoints)
 	for name, v := range publishPoints {
 		if execOptions, err := k8sexec.NewExecOptions(v.Namespace, v.PodName, v.CAContainerName); err == nil {
@@ -124,7 +131,7 @@ func getHandleFromPath(path string) data.Handle {
 // 创建ca层次结构中的rir部分
 func CreateHierarchy(dataDir string) {
 	slog.Debug(fmt.Sprintf("func CreateHierarchy Run with %s", dataDir))
-	caOps := createCAOp()
+	caOps := CreateCAOp()
 	var entries map[string]*fileEntry
 	if dirEntries, err := os.ReadDir(dataDir); err != nil {
 		slog.Error(err.Error())
@@ -154,7 +161,7 @@ func CreateHierarchy(dataDir string) {
 }
 
 // 创建ca层次结构rir之下的部分
-func recursiveCreateHierarchy(parentPublishPoint, parentCertName, dataDir string, caOps map[string]CA) {
+func recursiveCreateHierarchy(parentPublishPoint, parentCertName, dataDir string, caOps map[string]*KrillK8sCA) {
 	var entries map[string]*fileEntry
 	if dirEntries, err := os.ReadDir(dataDir); err != nil {
 		slog.Error(err.Error())
@@ -196,7 +203,7 @@ func recursiveCreateHierarchy(parentPublishPoint, parentCertName, dataDir string
 	wg.Wait()
 }
 
-func setRepo(publishPoint, parentPublishPoint, certName string, caOps map[string]CA) error {
+func setRepo(publishPoint, parentPublishPoint, certName string, caOps map[string]*KrillK8sCA) error {
 	var err error
 	if publishPoint == parentPublishPoint {
 		cnt := 0
@@ -233,7 +240,7 @@ func setRepo(publishPoint, parentPublishPoint, certName string, caOps map[string
 	return err
 }
 
-func setParentChildrenRel(publishPoint, parentPublishPoint, certName, parentCertName string, handle data.Handle, caOps map[string]CA) error {
+func setParentChildrenRel(publishPoint, parentPublishPoint, certName, parentCertName string, handle data.Handle, caOps map[string]*KrillK8sCA) error {
 	var err error
 	if publishPoint == parentPublishPoint {
 		cnt := 0

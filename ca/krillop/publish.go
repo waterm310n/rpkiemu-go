@@ -11,7 +11,7 @@ import (
 // 发布roa
 func PublishRoas(dataDir string) {
 	slog.Debug(fmt.Sprintf("func PublishRoas Run with %s", dataDir))
-	caOps := createCAOp()
+	caOps := CreateCAOp()
 	var entries map[string]*fileEntry
 	if dirEntries, err := os.ReadDir(dataDir); err != nil {
 		slog.Error(err.Error())
@@ -33,7 +33,7 @@ func PublishRoas(dataDir string) {
 	}
 }
 
-func recursivePublishRoas(dataDir string, caOps map[string]CA) {
+func recursivePublishRoas(dataDir string, caOps map[string]*KrillK8sCA) {
 	var entries map[string]*fileEntry
 	if dirEntries, err := os.ReadDir(dataDir); err != nil {
 		slog.Error(err.Error())
