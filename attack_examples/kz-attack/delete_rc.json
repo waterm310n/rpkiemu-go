@@ -1,0 +1,14 @@
+[
+    {
+        "attack_type": "DELETE",
+        "attack_object": "RESOURCECERT",
+        "attack_data": [
+            {
+                "handle_name": "mZSXYt_GeL7dct_lXidkRj2sblwU",
+                "publish_point": "ripe",
+                "parent_handle_name": "mKpSo3VVK5wEHIJnHC2QHVV3d5mk",
+                "parent_publish_point":"ripe"
+            }
+        ]
+    }
+]

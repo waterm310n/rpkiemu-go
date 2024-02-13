@@ -37,8 +37,8 @@ type databaseConfig struct {
 	LimitLayer int
 }
 
-// handle结构体
-type handle struct {
+// Handle结构体
+type Handle struct {
 	CertName     string
 	PublishPoint string
 	Ipv4         []string
@@ -68,6 +68,7 @@ func connect() *sql.DB {
 	err = db.Ping()
 	if err != nil {
 		slog.Error(err.Error())
+		os.Exit(1)
 	}
 	slog.Info("connect successfully")
 	db.SetConnMaxLifetime(time.Minute * 3) // 时间建议小于5mins
@@ -139,22 +140,23 @@ func checkAsn(parts []string) bool {
 	}
 	return false
 }
+
 // 从ipResources，asResources，uri中提取信息构造handle
-func preProcessing(ipResources, asResources, uri string) *handle {
+func preProcessing(ipResources, asResources, uri string) *Handle {
 	asResources = ASN_MATCH.ReplaceAllString(asResources, "AS$1")
 	asResources = ASN_MINMAX_MATCH.ReplaceAllString(asResources, "$1-$2")
 	asn := []string{}
-	if  asResources != "[ ]"{
+	if asResources != "[ ]" {
 		asn = strings.Split(asResources[1:len(asResources)-3], ",")
 	}
-	if ipResources != "[ ]"{
+	if ipResources != "[ ]" {
 		ipResources = IPV4_MINMAX_MATCH.ReplaceAllString(ipResources[1:len(ipResources)-3], "$1-$2")
 		ipResources = IPV6_MINMAX_MATCH.ReplaceAllString(ipResources, "$1-$2")
-	}	
+	}
 	ipv4, ipv6 := splitIpType(ipResources)
 	parts := URI_MATCH.FindStringSubmatch(uri)
 	publishPoint := strings.Split(parts[2], ".")[len(strings.Split(parts[2], "."))-2]
-	return &handle{
+	return &Handle{
 		Ipv4:         ipv4,
 		Ipv6:         ipv6,
 		Asn:          asn,
@@ -163,32 +165,100 @@ func preProcessing(ipResources, asResources, uri string) *handle {
 	}
 }
 
-func dfsHierarchy(stmt *sql.Stmt, dataDir string, depth int) {
+// 对给定的aia执行查找语句并将结果输出到以_roas结尾的文件中
+func writeRoas(roasStmt *sql.Stmt, aia string, path string) {
+	rows, err := roasStmt.Query(aia)
+	if err != nil {
+		slog.Error(err.Error())
+	}
+	helper := func(Ipaddrblocks, AsId string) []string {
+		var f interface{}
+		res := []string{}
+		//用接口写好麻烦，以后用结构体反序列化，算了会了也懒得改了
+		json.Unmarshal([]byte(Ipaddrblocks), &f)
+		if ipAddrBlocks, ok := f.(map[string]interface{})["ipAddrBlocks"]; ok {
+			if ipAddrBlocks, ok := ipAddrBlocks.([]interface{}); ok {
+				for _, ipAddrBlock := range ipAddrBlocks {
+					if addresses, ok := ipAddrBlock.(map[string]interface{})["addresses"]; ok {
+						if addresses, ok := addresses.([]interface{}); ok {
+							for _, address := range addresses {
+								if address, ok := address.(map[string]interface{})["address"]; ok {
+									if address, ok := address.(string); ok {
+										res = append(res, "A: "+address+" => "+AsId)
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		return res
+	}
+	res := []string{}
+	flag := true
+	var file *os.File
+	for rows.Next() {
+		if flag {
+			file, err = os.Create(path)
+			defer file.Close()
+			if err != nil {
+				slog.Error(err.Error())
+				return
+			}
+			flag = false
+		}
+		var Ipaddrblocks, AsId string
+		rows.Scan(&Ipaddrblocks, &AsId)
+		res = append(res, helper(Ipaddrblocks, AsId)...)
+	}
+	file.WriteString(strings.Join(res, "\n"))
+}
+
+// 深度优先搜索层次结构生成roas数据文件和层次结构数据文件
+func dfsHierarchy(hierarchyStmt *sql.Stmt, roasStmt *sql.Stmt, dataDir string, depth int) {
+	type PublishPoint struct{
+		IsRIR bool `json:"is_rir,omitempty"`
+	}
+	// 发布点与依赖方组合
+	type PointConfigure struct {
+		PublishPoints map[string]*PublishPoint `json:"publish_points,omitempty"`
+	}
+	publishPoints := make(map[string]*PublishPoint)
 	var helper func(string, string, int)
 	helper = func(dataDir string, aia string, depth int) {
 		if depth == 0 {
 			return
 		}
-		rows, err := stmt.Query(aia)
+		rows, err := hierarchyStmt.Query(aia)
 		if err != nil {
 			slog.Error(err.Error())
 		}
-		if err := os.MkdirAll(dataDir, os.ModePerm); err != nil {
-			slog.Error(err.Error())
-		}
+		flag := true
 		for rows.Next() {
+			if flag {
+				if err := os.MkdirAll(dataDir, os.ModePerm); err != nil {
+					slog.Error(err.Error())
+				}
+				flag = false
+			}
 			var IPResources, ASResources, URI string
 			rows.Scan(&IPResources, &ASResources, &URI)
 			handle := preProcessing(IPResources, ASResources, URI)
 			if checkAsn(handle.Asn) {
 				file, err := os.Create(dataDir + "/" + handle.CertName)
+				defer file.Close()
 				if err != nil {
 					slog.Error(err.Error())
+				}
+				if _, ok := publishPoints[handle.PublishPoint]; !ok {
+					publishPoints[handle.PublishPoint] = &PublishPoint{false}
 				}
 				if content, err := json.Marshal(&handle); err == nil {
 					file.Write(content)
 					helper(dataDir+"/"+handle.CertName+"_children", URI, depth-1)
 				}
+				writeRoas(roasStmt, URI, dataDir+"/"+handle.CertName+"_roas")
 			}
 		}
 	}
@@ -197,34 +267,55 @@ func dfsHierarchy(stmt *sql.Stmt, dataDir string, depth int) {
 		parts := URI_MATCH.FindStringSubmatch(rirsMap[v])
 		certName := "m" + parts[3]
 		file, err := os.Create(dataDir + "/" + certName)
+		defer file.Close()
 		if err != nil {
 			slog.Error(err.Error())
 		}
-		if content, err := json.Marshal(&handle{
+		publishPoint := strings.Split(parts[2], ".")[len(strings.Split(parts[2], "."))-2]
+		if content, err := json.Marshal(&Handle{
 			Ipv4:         []string{"0.0.0.0/0"},
 			Ipv6:         []string{"::/0"},
 			Asn:          []string{"AS0-AS4294967295"},
 			CertName:     certName,
-			PublishPoint: strings.Split(parts[2], ".")[len(strings.Split(parts[2], "."))-2],
+			PublishPoint: publishPoint,
 		}); err == nil {
 			file.Write(content)
+			publishPoints[publishPoint] = &PublishPoint{true}
 			helper(dataDir+"/"+certName+"_children", rirsMap[v], depth-1)
 		}
 	}
+	file, err := os.Create("tmp_publishPoints.json")
+	defer file.Close()
+	if err != nil {
+		slog.Error(err.Error())
+	}
+	if content, err := json.Marshal(PointConfigure{publishPoints}); err == nil {
+		file.Write(content)
+	}
+
 }
 
 func GenerateData(dataDir string) {
 	db := connect()
 	defer db.Close()
-	prepare_stmt := fmt.Sprintf("select IPResources, ASResources,URI from %s.%s where aia = ? and isvalid = 1", config.Database, config.Tables["cas"])
-	stmt, err := db.Prepare(prepare_stmt)
-	defer stmt.Close()
+	prepareHierarchyStmt := fmt.Sprintf("select IPResources, ASResources,URI from %s.%s where aia = ? and isvalid = 1", config.Database, config.Tables["cas"])
+	hierarchyStmt, err := db.Prepare(prepareHierarchyStmt)
+	defer hierarchyStmt.Close()
 	if err != nil {
 		slog.Error(err.Error())
+		os.Exit(1)
+	}
+	prepareRoasStmt := fmt.Sprintf("select Ipaddrblocks,AsId from %s.%s where aia= ? and isvalid=1", config.Database, config.Tables["roas"])
+	roasStmt, err := db.Prepare(prepareRoasStmt)
+	defer roasStmt.Close()
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 	if err := os.MkdirAll(dataDir, os.ModePerm); err != nil {
 		slog.Error(err.Error())
+		os.Exit(1)
 	}
-	dfsHierarchy(stmt, dataDir, config.LimitLayer)
+	dfsHierarchy(hierarchyStmt, roasStmt, dataDir, config.LimitLayer)
 	slog.Info("generate data compelete")
 }

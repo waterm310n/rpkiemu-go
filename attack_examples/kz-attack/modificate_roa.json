@@ -1,0 +1,24 @@
+[
+    {
+        "attack_type": "MODIFICATE",
+        "attack_object": "ROA",
+        "attack_data": [
+            {
+                "handle_name": "mZSXYt_GeL7dct_lXidkRj2sblwU",
+                "publish_point": "ripe",
+                "pre_bindings": [
+                    {
+                        "ip": "193.193.235.0/24",
+                        "asn": 8393
+                    }
+                ],
+                "after_bindings":[
+                    {
+                        "ip": "193.193.235.0/24",
+                        "asn": 8393
+                    }
+                ]
+            }
+        ]
+    }
+]
