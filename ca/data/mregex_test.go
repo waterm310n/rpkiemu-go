@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-/* TODO 以后要是学了fuzz，再来改进测试 */
+/* TODO 有空改fuzzing测试 */
 
 //测试URI分组匹配能不能匹配得上
 func TestURIMatch(t *testing.T){

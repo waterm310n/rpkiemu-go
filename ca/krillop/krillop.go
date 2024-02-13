@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/waterm310n/rpkiemu-go/ca/data"
 	"github.com/waterm310n/rpkiemu-go/k8sexec"
 )
 
@@ -275,6 +276,29 @@ func (kCA *KrillK8sCA) setChild(handle string, childHandle string, ipv4 []string
 	return nil
 }
 
+func (kCA *KrillK8sCA) updateChild(handle string, childHandle string, ipv4 []string, ipv6 []string, asn []string) error {
+	cmd := []string{"krillc children update --ca", handle,
+		"--child", childHandle}
+	if ipv4 != nil && len(ipv4) != 0 {
+		cmd = append(cmd, "--ipv4")
+		cmd = append(cmd, strconv.Quote(strings.Join(ipv4, ",")))
+	}
+	if ipv6 != nil && len(ipv6) != 0 {
+		cmd = append(cmd, "--ipv6")
+		cmd = append(cmd, strconv.Quote(strings.Join(ipv6, ",")))
+	}
+	if asn != nil && len(asn) != 0 {
+		cmd = append(cmd, "--asn")
+		cmd = append(cmd, strconv.Quote(strings.Join(asn, ",")))
+	}
+	cmdStr := strings.Join(cmd, " ")
+	if _, err := kCA.Exec(cmdStr); err != nil {
+		slog.Error(err.Error(), "cmd", cmdStr)
+		return err
+	}
+	return nil
+}
+
 func (kCA *KrillK8sCA) setParent(handle string, parentHandle string) error {
 	parentResponseFileName := filepath.Join("/tmp", handle, PARENT_RESPONSE_FILENAME)
 	if _, err := kCA.Exec(fmt.Sprintf("krillc parents add --parent %s --ca %s --response %s", parentHandle, handle, parentResponseFileName)); err != nil && err.Error() != fmt.Sprint("Invalid RFC 8183 XML: malformed XML\n") {
@@ -348,5 +372,49 @@ func (kCA *KrillK8sCA) CorruptRoa(handle string, asn int) {
 	}
 	for roaName := range roasName {
 		kCA.Exec(fmt.Sprintf("echo 'corrupted corrupted' >> /var/krill/data/repo/rsync/current/%s/0/%s", handle, roaName))
+	}
+}
+
+func (kCA *KrillK8sCA) Revocate(handle string, parentHandle string) {
+	if _, err := kCA.Exec(fmt.Sprintf("krillc children remove --child %s --ca %s", handle, parentHandle)); err != nil {
+		slog.Error(err.Error())
+	}
+}
+
+func (kCA *KrillK8sCA) Modificate(handle string, parentHandle string, ipv4, ipv6, asn []string) {
+	if err := kCA.updateChild(parentHandle, handle, ipv4, ipv6, asn); err != nil {
+		slog.Error("Modificate attack error")
+	}
+	/*
+		需要注意，执行后并不能够马上更新，krill每十分钟才会让所有children去向parent请求新的资源
+		要想马上生效，还需执行krill bulk refresh或其他相关指令
+	*/
+	if _, err := kCA.Exec("krillc bulk refresh"); err != nil {
+		slog.Error("failed to excute 'krillc bulk refresh'")
+	}
+}
+
+func (kCA *KrillK8sCA) Inject(certName string, parentHandle, publishPoint, parentPublishPoint string, ipv4, ipv6, asn []string, caOps map[string]*KrillK8sCA) {
+	handle := data.Handle{
+		CertName:     certName,
+		Ipv4:         ipv4,
+		Ipv6:         ipv6,
+		Asn:          asn,
+		PublishPoint: publishPoint,
+	}
+	if publishPoint == parentPublishPoint {
+		caOps[publishPoint].createHandle(certName)
+		if err := setRepo(publishPoint, publishPoint, certName, caOps); err != nil {
+			slog.Error(err.Error())
+		}
+		if err := setParentChildrenRel(publishPoint, publishPoint, certName, parentHandle, handle, caOps); err != nil {
+			slog.Error(err.Error())
+		}
+	} else {
+		slog.Debug(publishPoint)
+		caOps[publishPoint].createHandle(certName)
+		if err := setRepo(publishPoint, parentPublishPoint, certName, caOps); err != nil {
+			slog.Error(err.Error())
+		}
 	}
 }

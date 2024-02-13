@@ -45,7 +45,7 @@ type CA interface {
 	getParentRequest(handle string) error                                //在当前CA中为指定handle创建request请求
 	setChild(handle, childHandle string, ipv4, ipv6, asn []string) error //在当前CA从指定handle为下属handle分配资源
 	setParent(handle, parentHandle string) error                         //在当前CA为指定handle配置其上级handle
-
+	updateChild(handle string, childHandle string, ipv4 []string, ipv6 []string, asn []string) error //在当前CA为下级handle修改资源
 	//下面是roa发布处理方法
 
 	AddAsnIpPair(handle, ip, asn string)    //在当前CA为指定handle添加一条ASN-IP对
@@ -53,11 +53,12 @@ type CA interface {
 	addDeltaRoa(handle, file string)        //在当前CA中,为指定handle插入一个文件包含的ASN-IP对
 
 	//攻击时使用的操作
-	DeleteRoa(handle string, asn int)                                    //在handle中为破坏包含asn的所有roa证书
-	CorruptRoa(handle string, asn int)                                   //在handle中为破坏包含asn的所有roa证书
-	DeleteCert(handle string, parentHandle string, parentCa KrillK8sCA)  //在parentHandle中为删除handle的资源证书
-	CorruptCert(handle string, parentHandle string, parentCa KrillK8sCA) //在parentHandle中为删除handle的资源证书
-
+	DeleteRoa(handle string, asn int)                                     //在handle中为破坏包含asn的所有roa证书
+	CorruptRoa(handle string, asn int)                                    //在handle中为破坏包含asn的所有roa证书
+	DeleteCert(handle string, parentHandle string, parentCa *KrillK8sCA)  //在parentHandle中为删除handle的资源证书
+	CorruptCert(handle string, parentHandle string, parentCa *KrillK8sCA) //在parentHandle中为破坏handle的资源证书
+	Revocate(handle string, parentHandle string)                          //在parentHandle中为撤销handle的资源证书
+	Modificate(handle string, parentHandle string)                        //在parentHandle中为修改handle的资源证书
 }
 
 // 分割目录，资源证书文件，roas文件

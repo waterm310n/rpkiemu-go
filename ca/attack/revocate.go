@@ -10,14 +10,13 @@ import (
 func revocateAttack(attack *Attack, caOps map[string]*krillop.KrillK8sCA) {
 	switch attack.AttackObject {
 	case AttacKObject_RESOURCECERT:
-		//Todo AttacKObject_RESOURCECERT
-		// for _, attackData := range attack.AttackData {
-		// 	publishPoint := attackData.PublishPoint
-		// 	handle := attackData.HandleName
-		// 	parentHandle := attackData.ParentHandleName
-		// 	parentPublishPoint := attackData.ParentPublishPoint
-		// 	caOps[parentPublishPoint].Revocate()
-		// }
+		for _, attackData := range attack.AttackData {
+			handle := attackData.HandleName
+			parentHandle := attackData.ParentHandleName
+			parentPublishPoint := attackData.ParentPublishPoint
+			//考虑是恶意撤销行为，因此只在上级所在的发布点对下级的资源撤销，而下级是否知道事情发生是无关紧要的。
+			caOps[parentPublishPoint].Revocate(handle, parentHandle)
+		}
 	case AttacKObject_ROAS:
 		for _, attackData := range attack.AttackData {
 			publishPoint := attackData.PublishPoint

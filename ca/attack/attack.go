@@ -83,8 +83,9 @@ type AttackData struct {
 	ParentPublishPoint string     `json:"parent_publish_point,omitempty"`
 	ParentHandleName   string     `json:"parent_handle_name,omitempty"`
 	ASN                int        `json:"asn,omitempty"`
-	Ipv4Resource       []string   `json:"ipv_4_resource,omitempty"`
-	Ipv6Resource       []string   `json:"ipv_6_resource,omitempty"`
+	ASNes              []int      `json:"asnes,omitempty"`
+	Ipv4Resource       []string   `json:"ipv4_resource,omitempty"`
+	Ipv6Resource       []string   `json:"ipv6_resource,omitempty"`
 	PreBindings        []*Binding `json:"pre_bindings,omitempty"`
 	Bindings           []*Binding `json:"bindings,omitempty"`
 	AfterBindings      []*Binding `json:"after_bindings,omitempty"`
