@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/waterm310n/rpkiemu-go/cmd/cacmd"
-	"github.com/waterm310n/rpkiemu-go/cmd/rpcmd"
+	"github.com/waterm310n/rpkiemu-go/cmd/ca"
+	"github.com/waterm310n/rpkiemu-go/cmd/rp"
 )
 
 var (
@@ -28,8 +28,8 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config","", "配置文件 (默认为 [$HOME|$CURRENT_WORKDIR]/.rpki-emu.json)")
-	rootCmd.AddCommand(cacmd.CaCmd)
-	rootCmd.AddCommand(rpcmd.RpCmd)
+	rootCmd.AddCommand(ca.CaCmd)
+	rootCmd.AddCommand(rp.RpCmd)
 }
 
 func initConfig() {

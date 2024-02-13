@@ -1,37 +1,19 @@
 {
-    "databaseConfig": {
-        "host": "192.168.106.140",
+    "databaseConfig":{
+        "host": "172.19.220.163",
         "user": "root",
         "password": "123456",
         "port": 3306,
         "database": "rpki_db",
-        "rirs": [
-            "RIPE"
-        ],
+        "rirs": ["RIPE"],
         "tables": {
             "cas": "cas_new",
-            "roas": "roas_new"
+            "roas":"roas_new"
         },
-        "ases": [
-            "AS8393"
-        ],
-        "limitLayer": 5
+        "ases": ["AS8393"],
+        "limitLayer":5
     },
-    "kubeConfig": "/home/master/.kube/config",
-    "publish_points": {
-        "ripe": {
-            "namespace": "bgp",
-            "pod_name": "r4",
-            "ca_container_name": "r4-ripe",
-            "rsyncd_container_name": "r4-rsyncd",
-            "is_rir": true
-        }
-    },
-    "rely_parties": {
-        "r5-routinator": {
-            "namespace": "bgp",
-            "pod_name": "r5",
-            "container_name": "r5-routinator"
-        }
-    }
+    
+    "engine":"docker"
+    
 }

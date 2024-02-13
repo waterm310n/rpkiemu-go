@@ -8,5 +8,4 @@ COPY rsyncd.conf /etc/rsyncd.conf
 COPY *.sh /opt/
 USER root
 RUN chmod -R 777 /opt/entrypoint.sh
-# ENTRYPOINT [ "/opt/entrypoint.sh" ]
-CMD ["sleep","2000000"]
+ENTRYPOINT [ "/opt/entrypoint.sh" ]
