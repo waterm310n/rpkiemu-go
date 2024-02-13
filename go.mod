@@ -7,6 +7,7 @@ require github.com/spf13/cobra v1.7.0 // direct
 require (
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/spf13/viper v1.16.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	k8s.io/api v0.28.2
 	k8s.io/cli-runtime v0.28.2
 	k8s.io/client-go v0.28.2

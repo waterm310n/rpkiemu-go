@@ -1,3 +1,3 @@
 # rpki攻击
 
-等待实现
+可见[攻击示例](../../attack_examples/kz-attack/readme.md)

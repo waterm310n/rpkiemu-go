@@ -1,11 +1,10 @@
 rpkiemu-go
 .vscode
 examples
-attack_examples
 transfered_examples
 go.sum
-execute.log
 tmp
 tmp_publishPoints.json
 *.yaml
 .VSCodeCounter
+logs

@@ -1,0 +1,13 @@
+[
+    {
+        "attack_type": "CORRUPT",
+        "attack_object": "ROA",
+        "attack_data": [
+            {
+                "handle_name": "mZSXYt_GeL7dct_lXidkRj2sblwU",
+                "publish_point": "ripe",
+                "asn": 8393
+            }
+        ]
+    }
+]
