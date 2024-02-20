@@ -16,7 +16,7 @@
 见[安装](docs/install/install.md)
 
 ## 使用
-本项目的配置文件为`.rpkiemu-go.json`，关于其中的所有选项介绍见[配置说明](docs/configDoc.md)
+本项目的配置文件为`.rpkiemu-go.json`，关于其中的所有选项介绍见[配置说明](docs/manual/configDoc.md)
 
 ### 数据生成
 
