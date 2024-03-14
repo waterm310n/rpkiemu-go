@@ -207,60 +207,57 @@ func (kCA *KrillK8sCA) getRoaName(handle string, asn int) (map[string]interface{
 
 // 在当前CA中为指定handle创建repo请求
 func (kCA *KrillK8sCA) getRepoRequest(handle string) error {
-	publishRequestFileName := filepath.Join("/tmp", handle, PUBLISHER_REQUEST_FILENAME)
+	publishRequestFileName := filepath.Join("/tmp", fmt.Sprintf("%s_%s", handle, PUBLISHER_REQUEST_FILENAME))
 	if _, err := kCA.Exec(fmt.Sprintf("krillc repo request --ca %s > %s", handle, publishRequestFileName)); err != nil {
 		return err
 	}
 	return nil
-	// TODO: Implement 如果有需求的话在做修改，目前默认就是运行CA服务的都运行自己的仓库，自己的CA handle自己管理仓库
 }
 
 // 为发布点中添加publisher
 func (kCA *KrillK8sCA) setPubserver(handle string) error {
-	publishRequestFileName := filepath.Join("/tmp", handle, PUBLISHER_REQUEST_FILENAME)
-	repositoryResponseLocationFileName := filepath.Join("/tmp", handle, REPOSITORY_RESPONSE_LOCATION_FILENAME)
+	publishRequestFileName := filepath.Join("/tmp", fmt.Sprintf("%s_%s", handle, PUBLISHER_REQUEST_FILENAME))
+	repositoryResponseLocationFileName := filepath.Join("/tmp", fmt.Sprintf("%s_%s", handle, REPOSITORY_RESPONSE_LOCATION_FILENAME))
 	if _, err := kCA.Exec(fmt.Sprintf("krillc pubserver publishers add --publisher %s --request %s > %s", handle, publishRequestFileName, repositoryResponseLocationFileName)); err != nil && err.Error() != fmt.Sprintf("Error: Duplicate publisher '%s'\n", handle) {
 		return err
 	}
 	return nil
-	// TODO: Implement 如果有需求的话在做修改，目前默认就是运行CA服务的都运行自己的仓库，自己的CA handle自己管理仓库
 }
 
 // 为handle配置发布点
 func (kCA *KrillK8sCA) setRepoConfigure(handle string) error {
-	repositoryResponseLocationFileName := filepath.Join("/tmp", handle, REPOSITORY_RESPONSE_LOCATION_FILENAME)
-	if _, err := kCA.Exec(fmt.Sprintf("krillc repo configure --ca %s --response %s", handle, repositoryResponseLocationFileName)); err != nil && err.Error() != fmt.Sprint("Invalid RFC 8183 XML: malformed XML\n") {
+	repositoryResponseLocationFileName := filepath.Join("/tmp", fmt.Sprintf("%s_%s", handle, REPOSITORY_RESPONSE_LOCATION_FILENAME))
+	if _, err := kCA.Exec(fmt.Sprintf("krillc repo configure --ca %s --response %s", handle, repositoryResponseLocationFileName)); err != nil && err.Error() != "Invalid RFC 8183 XML: malformed XML\n" {
 		return err
 	}
 	return nil
-	// TODO: Implement 如果有需求的话在做修改，目前默认就是运行CA服务的都运行自己的仓库，自己的CA handle自己管理仓库
 }
 
 // 下面是上下级CA资源处理方法
 // 在当前CA中为指定handle创建request请求
-func (kCA *KrillK8sCA) getParentRequest(handle string) error {
-	childrenRequestLocationFileName := filepath.Join("/tmp", handle, CHILDREN_REQUEST_LOCATION_FILENAME)
+func (kCA *KrillK8sCA) getParentRequest(handle string) (string, error) {
+	childrenRequestLocationFileName := filepath.Join("/tmp", fmt.Sprintf("%s_%s", handle, CHILDREN_REQUEST_LOCATION_FILENAME))
 	if _, err := kCA.Exec(fmt.Sprintf("krillc parents request --ca %s > %s", handle, childrenRequestLocationFileName)); err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return childrenRequestLocationFileName, nil
 }
 
-func (kCA *KrillK8sCA) setChild(handle string, childHandle string, ipv4 []string, ipv6 []string, asn []string) error {
-	childrenRequestLocationFileName := filepath.Join("/tmp", childHandle, CHILDREN_REQUEST_LOCATION_FILENAME)
-	parentResponseFileName := filepath.Join("/tmp", childHandle, PARENT_RESPONSE_FILENAME)
+func (kCA *KrillK8sCA) setChild(handle string, childHandle string, ipv4 []string, ipv6 []string, asn []string) (string, error) {
+	childrenRequestLocationFileName := filepath.Join("/tmp", fmt.Sprintf("%s_%s", childHandle, CHILDREN_REQUEST_LOCATION_FILENAME))
+	parentResponseFileName := filepath.Join("/tmp", fmt.Sprintf("%s_%s", childHandle, PARENT_RESPONSE_FILENAME))
 	cmd := []string{"krillc children add --ca", handle,
 		"--child", childHandle,
 		"--request", childrenRequestLocationFileName}
-	if ipv4 != nil && len(ipv4) != 0 {
+	if len(ipv4) != 0 {
 		cmd = append(cmd, "--ipv4")
 		cmd = append(cmd, strconv.Quote(strings.Join(ipv4, ",")))
 	}
-	if ipv6 != nil && len(ipv6) != 0 {
+	if len(ipv6) != 0 {
 		cmd = append(cmd, "--ipv6")
 		cmd = append(cmd, strconv.Quote(strings.Join(ipv6, ",")))
 	}
-	if asn != nil && len(asn) != 0 {
+	if len(asn) != 0 {
 		cmd = append(cmd, "--asn")
 		cmd = append(cmd, strconv.Quote(strings.Join(asn, ",")))
 	}
@@ -271,23 +268,23 @@ func (kCA *KrillK8sCA) setChild(handle string, childHandle string, ipv4 []string
 		err.Error() != fmt.Sprintf("Error: CA '%s' already has a child named '%s'\n", handle, childHandle) &&
 		err.Error() != fmt.Sprintf("Error: Child '%s' cannot have resources not held by CA %s'\n", childHandle, handle) {
 		slog.Error(err.Error(), "cmd", cmdStr)
-		return err
+		return "", err
 	}
-	return nil
+	return parentResponseFileName, nil
 }
 
 func (kCA *KrillK8sCA) updateChild(handle string, childHandle string, ipv4 []string, ipv6 []string, asn []string) error {
 	cmd := []string{"krillc children update --ca", handle,
 		"--child", childHandle}
-	if ipv4 != nil && len(ipv4) != 0 {
+	if len(ipv4) != 0 {
 		cmd = append(cmd, "--ipv4")
 		cmd = append(cmd, strconv.Quote(strings.Join(ipv4, ",")))
 	}
-	if ipv6 != nil && len(ipv6) != 0 {
+	if len(ipv6) != 0 {
 		cmd = append(cmd, "--ipv6")
 		cmd = append(cmd, strconv.Quote(strings.Join(ipv6, ",")))
 	}
-	if asn != nil && len(asn) != 0 {
+	if len(asn) != 0 {
 		cmd = append(cmd, "--asn")
 		cmd = append(cmd, strconv.Quote(strings.Join(asn, ",")))
 	}
@@ -300,8 +297,8 @@ func (kCA *KrillK8sCA) updateChild(handle string, childHandle string, ipv4 []str
 }
 
 func (kCA *KrillK8sCA) setParent(handle string, parentHandle string) error {
-	parentResponseFileName := filepath.Join("/tmp", handle, PARENT_RESPONSE_FILENAME)
-	if _, err := kCA.Exec(fmt.Sprintf("krillc parents add --parent %s --ca %s --response %s", parentHandle, handle, parentResponseFileName)); err != nil && err.Error() != fmt.Sprint("Invalid RFC 8183 XML: malformed XML\n") {
+	parentResponseFileName := filepath.Join("/tmp", fmt.Sprintf("%s_%s", handle, PARENT_RESPONSE_FILENAME))
+	if _, err := kCA.Exec(fmt.Sprintf("krillc parents add --parent %s --ca %s --response %s", parentHandle, handle, parentResponseFileName)); err != nil && err.Error() != "Invalid RFC 8183 XML: malformed XML\n" {
 		return err
 	}
 	return nil
@@ -404,7 +401,7 @@ func (kCA *KrillK8sCA) Inject(certName string, parentHandle, publishPoint, paren
 	}
 	if publishPoint == parentPublishPoint {
 		caOps[publishPoint].createHandle(certName)
-		if err := setRepo(publishPoint, publishPoint, certName, caOps); err != nil {
+		if err := setRepo(publishPoint, certName, caOps); err != nil {
 			slog.Error(err.Error())
 		}
 		if err := setParentChildrenRel(publishPoint, publishPoint, certName, parentHandle, handle, caOps); err != nil {
@@ -413,7 +410,7 @@ func (kCA *KrillK8sCA) Inject(certName string, parentHandle, publishPoint, paren
 	} else {
 		slog.Debug(publishPoint)
 		caOps[publishPoint].createHandle(certName)
-		if err := setRepo(publishPoint, parentPublishPoint, certName, caOps); err != nil {
+		if err := setRepo(publishPoint, certName, caOps); err != nil {
 			slog.Error(err.Error())
 		}
 	}

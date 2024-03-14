@@ -16,6 +16,8 @@ import (
 	"github.com/waterm310n/rpkiemu-go/k8sexec"
 )
 
+const RETRY_UPPER_LIMIT = 5
+
 // 一个handle有自己的资源，自己发布的roa，它的下属ca
 type fileEntry struct {
 	resource fs.DirEntry
@@ -42,9 +44,9 @@ type CA interface {
 
 	//下面是上下级CA资源处理方法
 
-	getParentRequest(handle string) error                                //在当前CA中为指定handle创建request请求
-	setChild(handle, childHandle string, ipv4, ipv6, asn []string) error //在当前CA从指定handle为下属handle分配资源
-	setParent(handle, parentHandle string) error                         //在当前CA为指定handle配置其上级handle
+	getParentRequest(handle string) error                                                            //在当前CA中为指定handle创建request请求
+	setChild(handle, childHandle string, ipv4, ipv6, asn []string) error                             //在当前CA从指定handle为下属handle分配资源
+	setParent(handle, parentHandle string) error                                                     //在当前CA为指定handle配置其上级handle
 	updateChild(handle string, childHandle string, ipv4 []string, ipv6 []string, asn []string) error //在当前CA为下级handle修改资源
 	//下面是roa发布处理方法
 
@@ -147,7 +149,7 @@ func CreateHierarchy(dataDir string) {
 			continue
 		}
 		caOps[publishPoint].createHandle(certName)
-		if err := setRepo(publishPoint, publishPoint, certName, caOps); err != nil {
+		if err := setRepo(publishPoint, certName, caOps); err != nil {
 			slog.Error(err.Error())
 			continue
 		}
@@ -175,6 +177,7 @@ func recursiveCreateHierarchy(parentPublishPoint, parentCertName, dataDir string
 		children := v.children
 		handle := getHandleFromPath(filepath.Join(dataDir, v.resource.Name()))
 		publishPoint := handle.PublishPoint
+		// TODO 由于之前对多协程开发理解不够，写出了存在严重问题的代码，很有可能协程递归爆内存，有空再改
 		wg.Add(1)
 		go func() {
 			if caOps[publishPoint] == nil {
@@ -182,7 +185,7 @@ func recursiveCreateHierarchy(parentPublishPoint, parentCertName, dataDir string
 			}
 			if publishPoint == parentPublishPoint {
 				caOps[publishPoint].createHandle(certName)
-				if err := setRepo(publishPoint, publishPoint, certName, caOps); err != nil {
+				if err := setRepo(publishPoint, certName, caOps); err != nil {
 					slog.Error(err.Error())
 				}
 				if err := setParentChildrenRel(publishPoint, publishPoint, certName, parentCertName, handle, caOps); err != nil {
@@ -194,8 +197,14 @@ func recursiveCreateHierarchy(parentPublishPoint, parentCertName, dataDir string
 			} else {
 				slog.Debug(publishPoint)
 				caOps[publishPoint].createHandle(certName)
-				if err := setRepo(publishPoint, parentPublishPoint, certName, caOps); err != nil {
+				if err := setRepo(publishPoint, certName, caOps); err != nil {
 					slog.Error(err.Error())
+				}
+				if err := setParentChildrenRel(publishPoint, parentPublishPoint, certName, parentCertName, handle, caOps); err != nil {
+					slog.Error(err.Error())
+				}
+				if children != nil {
+					recursiveCreateHierarchy(publishPoint, certName, filepath.Join(dataDir, children.Name()), caOps)
 				}
 			}
 			wg.Done()
@@ -204,40 +213,31 @@ func recursiveCreateHierarchy(parentPublishPoint, parentCertName, dataDir string
 	wg.Wait()
 }
 
-func setRepo(publishPoint, parentPublishPoint, certName string, caOps map[string]*KrillK8sCA) error {
+func setRepo(publishPoint, handle string, caOps map[string]*KrillK8sCA) error {
 	var err error
-	if publishPoint == parentPublishPoint {
-		cnt := 0
-		for ; cnt < 5; cnt++ {
-			if err := caOps[publishPoint].getRepoRequest(certName); err != nil {
-				cnt++
-				time.Sleep(1 * time.Second)
-				continue
-			}
-			if err := caOps[publishPoint].setPubserver(certName); err != nil {
-				cnt++
-				time.Sleep(1 * time.Second)
-				continue
-			}
-			if err := caOps[publishPoint].setRepoConfigure(certName); err != nil {
-				cnt++
-				time.Sleep(1 * time.Second)
-				continue
-			}
-			break
+	cnt := 0
+	for ; cnt < RETRY_UPPER_LIMIT; cnt++ {
+		if err := caOps[publishPoint].getRepoRequest(handle); err != nil {
+			cnt++
+			slog.Error(err.Error())
+			time.Sleep(1 * time.Second)
+			continue
 		}
-
-	} else {
-		cnt := 0
-		for ; cnt < 5; cnt++ {
-			if err := caOps[publishPoint].getRepoRequest(certName); err != nil {
-				cnt++
-				time.Sleep(1 * time.Second)
-				continue
-			}
-
+		if err := caOps[publishPoint].setPubserver(handle); err != nil {
+			cnt++
+			slog.Error(err.Error())
+			time.Sleep(1 * time.Second)
+			continue
 		}
+		if err := caOps[publishPoint].setRepoConfigure(handle); err != nil {
+			cnt++
+			slog.Error(err.Error())
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		break
 	}
+
 	return err
 }
 
@@ -245,19 +245,48 @@ func setParentChildrenRel(publishPoint, parentPublishPoint, certName, parentCert
 	var err error
 	if publishPoint == parentPublishPoint {
 		cnt := 0
-		for ; cnt < 5; cnt++ {
-			if err = caOps[publishPoint].getParentRequest(certName); err != nil {
+		for ; cnt < RETRY_UPPER_LIMIT; cnt++ {
+			if _, err = caOps[publishPoint].getParentRequest(certName); err != nil {
 				cnt++
 				time.Sleep(1 * time.Second)
 				continue
 			}
-			if err = caOps[publishPoint].setChild(parentCertName, certName, handle.Ipv4, handle.Ipv6, handle.Asn); err != nil {
+			if _, err = caOps[publishPoint].setChild(parentCertName, certName, handle.Ipv4, handle.Ipv6, handle.Asn); err != nil {
 				cnt++
 				time.Sleep(1 * time.Second)
 				continue
 			}
 			if err = caOps[publishPoint].setParent(certName, parentCertName); err != nil {
 				cnt++
+				time.Sleep(1 * time.Second)
+				continue
+			}
+			break
+		}
+	} else {
+		cnt := 0
+		for ; cnt < RETRY_UPPER_LIMIT; cnt++ {
+			childrenRequestLocationFileName, err := caOps[publishPoint].getParentRequest(certName)
+			if err != nil {
+				cnt++
+				slog.Error(err.Error())
+				time.Sleep(1 * time.Second)
+				continue
+			}
+			caOps[publishPoint].Download(childrenRequestLocationFileName, childrenRequestLocationFileName)
+			caOps[parentPublishPoint].Upload(childrenRequestLocationFileName, childrenRequestLocationFileName)
+			parentResponseFileName, err := caOps[parentPublishPoint].setChild(parentCertName, certName, handle.Ipv4, handle.Ipv6, handle.Asn)
+			if err != nil {
+				cnt++
+				slog.Error(err.Error())
+				time.Sleep(1 * time.Second)
+				continue
+			}
+			caOps[parentPublishPoint].Download(parentResponseFileName, parentResponseFileName)
+			caOps[publishPoint].Upload(parentResponseFileName, parentResponseFileName)
+			if err = caOps[publishPoint].setParent(certName, parentCertName); err != nil {
+				cnt++
+				slog.Error(err.Error())
 				time.Sleep(1 * time.Second)
 				continue
 			}

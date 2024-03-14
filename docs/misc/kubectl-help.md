@@ -14,4 +14,5 @@ kubectl get pods -A
 kubectl exec -it -n < 命名空间 > < pod名称 > -c < 容器名称 > -- sh
 # -n 命名空间，此处默认bgp
 # -c 容器名称
+# 示例 kubectl exec -it -n bgp r1-0 -c r1-0-apnic -- sh
 ```

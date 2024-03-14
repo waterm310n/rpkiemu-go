@@ -25,6 +25,13 @@
             "ca_container_name": "r4-ripe",
             "rsyncd_container_name": "r4-rsyncd",
             "is_rir": true
+        },
+        "apnic": {
+            "namespace": "bgp",
+            "pod_name": "r1-0",
+            "ca_container_name": "r1-0-apnic",
+            "rsyncd_container_name": "r1-0-rsyncd",
+            "is_rir": true
         }
     },
     "rely_parties": {
